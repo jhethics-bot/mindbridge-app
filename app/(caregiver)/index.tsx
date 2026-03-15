@@ -1,0 +1,243 @@
+/**
+ * Caregiver Dashboard
+ * Shows patient status, recent activity, mood trends, SOS count.
+ * Queries tables directly (no RPC needed).
+ */
+import React, { useState, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS } from '../../constants/colors';
+import { A11Y } from '../../constants/accessibility';
+import { supabase, getCurrentProfile, getCaregiverPatients } from '../../lib/supabase';
+
+interface DashboardData {
+  patientName: string;
+  patientStage: string;
+  todayMood: string | null;
+  moodEmoji: string;
+  activitiesToday: number;
+  totalMinutesToday: number;
+  sosThisWeek: number;
+  recentActivities: { activity: string; created_at: string }[];
+  moodWeek: { mood: string; created_at: string }[];
+}
+
+const MOOD_EMOJIS: Record<string, string> = {
+  happy: '😊', okay: '😐', sad: '😢', confused: '😕', tired: '😴',
+};
+
+export default function CaregiverDashboard() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [patientId, setPatientId] = useState('');
+
+  useEffect(() => { loadDashboard(); }, []);
+
+  async function loadDashboard() {
+    try {
+      const profile = await getCurrentProfile();
+      if (!profile) { router.replace('/'); return; }
+
+      const patients = await getCaregiverPatients(profile.id);
+      if (!patients || patients.length === 0) {
+        setLoading(false);
+        return;
+      }
+      const patient = patients[0].patient;
+      const pid = patients[0].patient_id;
+      setPatientId(pid);
+
+      const today = new Date().toISOString().split('T')[0];
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+
+      const [moodRes, actRes, sosRes, weekMoodRes] = await Promise.all([
+        supabase.from('mood_checkins').select('mood')
+          .eq('patient_id', pid).gte('created_at', `${today}T00:00:00`)
+          .order('created_at', { ascending: false }).limit(1),
+        supabase.from('activity_sessions').select('activity, duration_seconds, created_at')
+          .eq('patient_id', pid).gte('created_at', `${today}T00:00:00`)
+          .order('created_at', { ascending: false }),
+        supabase.from('sos_events').select('id')
+          .eq('patient_id', pid).gte('created_at', weekAgo),
+        supabase.from('mood_checkins').select('mood, created_at')
+          .eq('patient_id', pid).gte('created_at', weekAgo)
+          .order('created_at', { ascending: false }),
+      ]);
+
+      const todayMood = moodRes.data?.[0]?.mood || null;
+      const activities = actRes.data || [];
+      const totalMin = Math.round(activities.reduce((sum: number, a: any) => sum + (a.duration_seconds || 0), 0) / 60);
+
+      setData({
+        patientName: patient?.display_name || 'Patient',
+        patientStage: patient?.stage || 'middle',
+        todayMood,
+        moodEmoji: todayMood ? (MOOD_EMOJIS[todayMood] || '😊') : '—',
+        activitiesToday: activities.length,
+        totalMinutesToday: totalMin,
+        sosThisWeek: sosRes.data?.length || 0,
+        recentActivities: activities.slice(0, 5),
+        moodWeek: weekMoodRes.data || [],
+      });
+    } catch (err) {
+      console.error('Dashboard error:', err);
+    }
+    setLoading(false);
+  }
+
+  function navCard(label: string, emoji: string, route: string) {
+    return (
+      <Pressable
+        key={route}
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(route as any); }}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={({ pressed }) => [st.navCard, pressed && { backgroundColor: COLORS.glow }]}
+      >
+        <Text style={{ fontSize: 28 }}>{emoji}</Text>
+        <Text style={st.navLabel}>{label}</Text>
+      </Pressable>
+    );
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={st.safeArea}>
+        <View style={st.center}><ActivityIndicator size="large" color={COLORS.teal} /></View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={st.safeArea}>
+      <ScrollView contentContainerStyle={st.scroll}>
+        <View style={st.header}>
+          <Text style={st.title}>MindBridge</Text>
+          <Text style={st.subtitle}>Caregiver Dashboard</Text>
+        </View>
+
+        {data ? (
+          <>
+            <View style={st.statusRow}>
+              <View style={st.statusCard}>
+                <Text style={st.statusLabel}>Mood Today</Text>
+                <Text style={{ fontSize: 36 }}>{data.moodEmoji}</Text>
+                <Text style={st.statusValue}>{data.todayMood || 'Not yet'}</Text>
+              </View>
+              <View style={st.statusCard}>
+                <Text style={st.statusLabel}>Activities</Text>
+                <Text style={st.statusBig}>{data.activitiesToday}</Text>
+                <Text style={st.statusValue}>{data.totalMinutesToday} min</Text>
+              </View>
+              <View style={[st.statusCard, data.sosThisWeek > 0 && st.sosHighlight]}>
+                <Text style={st.statusLabel}>SOS (7d)</Text>
+                <Text style={st.statusBig}>{data.sosThisWeek}</Text>
+              </View>
+            </View>
+
+            <View style={st.infoCard}>
+              <Text style={st.infoTitle}>{data.patientName}</Text>
+              <Text style={st.infoStage}>Stage: {data.patientStage}</Text>
+            </View>
+
+            {data.recentActivities.length > 0 && (
+              <View style={st.section}>
+                <Text style={st.sectionTitle}>Today's Activities</Text>
+                {data.recentActivities.map((a, i) => (
+                  <View key={i} style={st.activityRow}>
+                    <Text style={st.activityName}>{a.activity.replace(/_/g, ' ')}</Text>
+                    <Text style={st.activityTime}>
+                      {new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {data.moodWeek.length > 0 && (
+              <View style={st.section}>
+                <Text style={st.sectionTitle}>Mood This Week</Text>
+                <View style={st.moodRow}>
+                  {data.moodWeek.slice(0, 7).map((m, i) => (
+                    <View key={i} style={st.moodChip}>
+                      <Text style={{ fontSize: 24 }}>{MOOD_EMOJIS[m.mood] || '😊'}</Text>
+                      <Text style={st.moodDate}>
+                        {new Date(m.created_at).toLocaleDateString([], { weekday: 'short' })}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={st.emptyState}>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>🔗</Text>
+            <Text style={st.emptyText}>No patient linked yet.</Text>
+          </View>
+        )}
+
+        <View style={st.navGrid}>
+          {navCard('Observations', '📝', '/(caregiver)/observations')}
+          {navCard('Medications', '💊', '/(caregiver)/medications')}
+          {navCard('Settings', '⚙️', '/(caregiver)/settings')}
+        </View>
+
+        <Pressable
+          onPress={async () => { await supabase.auth.signOut(); router.replace('/'); }}
+          style={st.logoutBtn}
+        >
+          <Text style={st.logoutText}>Sign Out</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const st = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: COLORS.cream },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scroll: { padding: A11Y.screenPadding, paddingBottom: 40 },
+  header: { marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: '700', color: COLORS.navy },
+  subtitle: { fontSize: 16, color: COLORS.gray },
+  statusRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  statusCard: {
+    flex: 1, backgroundColor: COLORS.white, borderRadius: 16, padding: 16, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+  },
+  sosHighlight: { backgroundColor: '#FFF3F0', borderWidth: 1, borderColor: COLORS.coral },
+  statusLabel: { fontSize: 12, color: COLORS.gray, marginBottom: 4, textTransform: 'uppercase', fontWeight: '600' },
+  statusBig: { fontSize: 32, fontWeight: '700', color: COLORS.navy },
+  statusValue: { fontSize: 14, color: COLORS.gray, marginTop: 2 },
+  infoCard: {
+    backgroundColor: COLORS.white, borderRadius: 16, padding: 16, marginBottom: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  infoTitle: { fontSize: 20, fontWeight: '700', color: COLORS.navy },
+  infoStage: { fontSize: 16, color: COLORS.teal, fontWeight: '600', textTransform: 'capitalize' },
+  section: { marginBottom: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.navy, marginBottom: 10 },
+  activityRow: {
+    flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: COLORS.lightGray,
+  },
+  activityName: { fontSize: 16, color: COLORS.navy, textTransform: 'capitalize' },
+  activityTime: { fontSize: 14, color: COLORS.gray },
+  moodRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  moodChip: { alignItems: 'center', padding: 8, backgroundColor: COLORS.white, borderRadius: 12 },
+  moodDate: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  emptyState: { alignItems: 'center', paddingVertical: 40 },
+  emptyText: { fontSize: 20, fontWeight: '600', color: COLORS.navy },
+  navGrid: { flexDirection: 'row', gap: 10, marginTop: 16, marginBottom: 20 },
+  navCard: {
+    flex: 1, backgroundColor: COLORS.white, borderRadius: 16, padding: 16, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+  },
+  navLabel: { fontSize: 14, fontWeight: '600', color: COLORS.navy, marginTop: 8 },
+  logoutBtn: { alignSelf: 'center', padding: 16 },
+  logoutText: { fontSize: 16, color: COLORS.coral, fontWeight: '600' },
+});

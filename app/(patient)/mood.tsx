@@ -1,19 +1,20 @@
 /**
- * Daily Mood Check-In Screen
- * 
- * First screen shown each day. Five emoji faces, single tap selection.
- * No reading required. Feeds into AI difficulty engine.
- * 
+ * Daily Mood Check-In Screen (standalone, navigated from home)
+ *
+ * If the user is sent here directly, this screen logs the mood
+ * and navigates back to the home screen, which will then load the queue.
+ *
  * Clinical basis: Mood data drives adaptive difficulty calibration.
  * Longitudinal mood tracking included in weekly caregiver reports.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { MBSafeArea } from '../../components/ui/MBSafeArea';
 import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
+import { supabase } from '../../lib/supabase';
 import type { MoodType } from '../../types';
 
 interface MoodOption {
@@ -38,15 +39,40 @@ export default function MoodCheckIn() {
   const handleSelect = async (mood: MoodType) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelected(mood);
-    
+
     // Brief pause to show selection, then submit
     setTimeout(async () => {
       setSubmitted(true);
-      
-      // TODO: Call logMoodCheckin(patientId, mood)
-      // TODO: Trigger AI calibration
-      
-      // Show thank you, then navigate to home
+
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Log mood to Supabase
+          await supabase
+            .from('mood_checkins')
+            .insert({ patient_id: user.id, mood });
+
+          // Trigger AI queue generation (non-blocking best-effort)
+          try {
+            const { generateDailyQueue } = require('../../lib/ai-engine');
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('stage, faith_enabled')
+              .eq('id', user.id)
+              .single();
+            if (profile) {
+              generateDailyQueue(user.id, profile.stage, mood, profile.faith_enabled);
+            }
+          } catch {
+            // AI engine failure is non-critical
+          }
+        }
+      } catch (err) {
+        console.error('Mood log error:', err);
+      }
+
+      // Navigate back to home after brief "thank you" display
       setTimeout(() => {
         router.replace('/(patient)');
       }, 1500);
@@ -62,6 +88,7 @@ export default function MoodCheckIn() {
           <Text style={styles.thankYouSub}>
             Getting your activities ready...
           </Text>
+          <ActivityIndicator size="large" color={COLORS.teal} style={{ marginTop: 24 }} />
         </View>
       </MBSafeArea>
     );
@@ -72,7 +99,7 @@ export default function MoodCheckIn() {
       <View style={styles.container}>
         <Text style={styles.greeting}>Good morning!</Text>
         <Text style={styles.question}>How are you feeling today?</Text>
-        
+
         <View style={styles.emojiGrid}>
           {MOOD_OPTIONS.map((option) => (
             <Pressable
@@ -137,7 +164,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
-    // Subtle shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
