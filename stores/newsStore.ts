@@ -3,7 +3,7 @@ import { NewsArticle, fetchNews } from '../lib/news-reader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CACHE_KEY = 'mindbridge_news_cache';
-const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
+const CACHE_TTL = 4 * 60 * 60 * 1000;
 
 interface NewsState {
   articles: NewsArticle[];
@@ -20,10 +20,8 @@ export const useNewsStore = create<NewsState>((set, get) => ({
   lastFetched: null,
   selectedCategory: null,
 
-  loadNews: async (category) => {
+  loadNews: async (category?: string) => {
     set({ loading: true });
-
-    // Check cache first
     const cached = await AsyncStorage.getItem(CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached);
@@ -35,14 +33,11 @@ export const useNewsStore = create<NewsState>((set, get) => ({
         return;
       }
     }
-
-    // Fetch fresh
     try {
       const articles = await fetchNews(category);
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({ articles, timestamp: Date.now() }));
       set({ articles, loading: false, lastFetched: Date.now() });
     } catch {
-      // Use stale cache if fetch fails
       if (cached) {
         const parsed = JSON.parse(cached);
         set({ articles: parsed.articles, loading: false });
@@ -52,7 +47,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
     }
   },
 
-  setCategory: (cat) => {
+  setCategory: (cat: string | null) => {
     set({ selectedCategory: cat });
     get().loadNews(cat || undefined);
   },
