@@ -44,3 +44,6 @@ yarn-error.*
 
 supabase/.temp/
 fix-git.bat
+
+# Documents (not source code)
+*.docx

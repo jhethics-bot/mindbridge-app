@@ -1,13 +1,10 @@
 /**
  * Daily Mood Check-In Screen (standalone, navigated from home)
  *
- * If the user is sent here directly, this screen logs the mood
- * and navigates back to the home screen, which will then load the queue.
- *
- * Clinical basis: Mood data drives adaptive difficulty calibration.
- * Longitudinal mood tracking included in weekly caregiver reports.
+ * Logs mood to Supabase, then navigates back to home screen
+ * which will detect the mood and show the activity queue.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -36,24 +33,52 @@ export default function MoodCheckIn() {
   const [selected, setSelected] = useState<MoodType | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
+  // Guard: if mood already exists for today, skip straight to home
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const today = new Date().toISOString().split('T')[0];
+        const { data } = await supabase
+          .from('mood_checkins')
+          .select('id')
+          .eq('patient_id', user.id)
+          .gte('created_at', `${today}T00:00:00`)
+          .limit(1);
+        if (data && data.length > 0) {
+          console.log('[mood.tsx] Mood already exists for today, redirecting to home');
+          router.replace('/(patient)' as any);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
   const handleSelect = async (mood: MoodType) => {
+    if (selected) return; // Prevent double-tap
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelected(mood);
 
-    // Brief pause to show selection, then submit
+    // Brief pause to show selection highlight
     setTimeout(async () => {
       setSubmitted(true);
 
       try {
-        // Get current user
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          // Log mood to Supabase
-          await supabase
+          console.log('[mood.tsx] Inserting mood:', mood, 'for patient:', user.id);
+
+          const { error: insertError } = await supabase
             .from('mood_checkins')
             .insert({ patient_id: user.id, mood });
 
-          // Trigger AI queue generation (non-blocking best-effort)
+          if (insertError) {
+            console.error('[mood.tsx] Insert error:', insertError);
+          } else {
+            console.log('[mood.tsx] Mood inserted successfully');
+          }
+
+          // Try AI queue generation (non-blocking, best-effort)
           try {
             const { generateDailyQueue } = require('../../lib/ai-engine');
             const { data: profile } = await supabase
@@ -69,12 +94,13 @@ export default function MoodCheckIn() {
           }
         }
       } catch (err) {
-        console.error('Mood log error:', err);
+        console.error('[mood.tsx] Mood log error:', err);
       }
 
       // Navigate back to home after brief "thank you" display
       setTimeout(() => {
-        router.replace('/(patient)');
+        console.log('[mood.tsx] Navigating to /(patient)');
+        router.replace('/(patient)' as any);
       }, 1500);
     }, 500);
   };
@@ -187,7 +213,6 @@ const styles = StyleSheet.create({
   emojiLabelSelected: {
     color: COLORS.teal,
   },
-  // Thank you screen
   thankYouContainer: {
     flex: 1,
     justifyContent: 'center',
