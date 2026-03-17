@@ -1,5 +1,5 @@
 /**
- * MindBridge: Daily Verse Edge Function
+ * NeuBridge: Daily Verse Edge Function
  *
  * Selects a comforting scripture verse based on the patient's current mood
  * and preferences. Uses public domain translations only (KJV, WEB, ASV).

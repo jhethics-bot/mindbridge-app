@@ -1,5 +1,5 @@
 /**
- * MindBridge Time-of-Day Theming System
+ * NeuBridge Time-of-Day Theming System
  *
  * Background colors and ambient atmosphere shift gently throughout the day,
  * mirroring natural light patterns. This serves both aesthetic and clinical

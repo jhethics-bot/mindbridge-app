@@ -1,5 +1,5 @@
 /**
- * MindBridge: Medication Tracker Edge Function
+ * NeuBridge: Medication Tracker Edge Function
  *
  * Handles patient medication schedules: generates today's dose list,
  * records confirmations, and provides adherence data.

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { NewsArticle, fetchNews } from '../lib/news-reader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CACHE_KEY = 'mindbridge_news_cache';
+const CACHE_KEY = 'neubridge_news_cache';
 const CACHE_TTL = 4 * 60 * 60 * 1000;
 
 interface NewsState {

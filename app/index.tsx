@@ -88,7 +88,7 @@ export default function Index() {
   if (state === 'loading') {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>MindBridge</Text>
+        <Text style={styles.title}>NeuBridge</Text>
         <Text style={styles.subtitle}>Cognitive Care Companion</Text>
         <ActivityIndicator size="large" color={COLORS.teal} style={{ marginTop: 32 }} />
       </View>
@@ -99,7 +99,7 @@ export default function Index() {
   if (state === 'welcome_back') {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>MindBridge</Text>
+        <Text style={styles.title}>NeuBridge</Text>
         <Text style={styles.welcomeBack}>Welcome back, {welcomeName}!</Text>
 
         <View style={styles.buttonGroup}>
@@ -125,7 +125,7 @@ export default function Index() {
   // ---- LOGIN (no session) ----
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>MindBridge</Text>
+      <Text style={styles.title}>NeuBridge</Text>
       <Text style={styles.subtitle}>Cognitive Care Companion</Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}

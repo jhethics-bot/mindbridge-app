@@ -1,5 +1,5 @@
 /**
- * MindBridge: Weekly Report Edge Function
+ * NeuBridge: Weekly Report Edge Function
  *
  * Generates a comprehensive weekly care summary for caregivers.
  * Aggregates activity sessions, mood check-ins, cognitive scores,

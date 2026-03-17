@@ -1,5 +1,5 @@
 /**
- * MindBridge Brand Colors
+ * NeuBridge Brand Colors
  * Warm, nature-inspired palette optimized for WCAG AAA contrast
  * on cream backgrounds. Never use red for negative states.
  */

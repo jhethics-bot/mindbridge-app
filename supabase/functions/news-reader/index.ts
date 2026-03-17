@@ -1,5 +1,5 @@
 /**
- * MindBridge: News Reader Edge Function
+ * NeuBridge: News Reader Edge Function
  *
  * Fetches curated Alzheimer's/dementia news from trusted sources,
  * strips bias and marketing language, and returns caregiver-friendly

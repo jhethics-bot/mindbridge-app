@@ -1,5 +1,5 @@
 /**
- * MindBridge Global Types
+ * NeuBridge Global Types
  */
 
 // ============================================

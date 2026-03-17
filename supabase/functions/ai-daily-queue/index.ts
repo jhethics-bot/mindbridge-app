@@ -1,5 +1,5 @@
 /**
- * MindBridge: AI Daily Queue Edge Function
+ * NeuBridge: AI Daily Queue Edge Function
  *
  * Generates a personalized daily activity queue for each patient using
  * Claude AI. Considers disease stage, recent mood, cognitive performance
@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
         max_tokens: 1024,
         messages: [{
           role: 'user',
-          content: `You are the MindBridge AI engine. Generate a personalized daily activity queue for an Alzheimer's patient.
+          content: `You are the NeuBridge AI engine. Generate a personalized daily activity queue for an Alzheimer's patient.
 
 Patient stage: ${stage}
 Current mood: ${currentMood}

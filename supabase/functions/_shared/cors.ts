@@ -1,5 +1,5 @@
 /**
- * Shared CORS headers for all MindBridge Edge Functions.
+ * Shared CORS headers for all NeuBridge Edge Functions.
  */
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "MindBridge",
-    "slug": "mindbridge",
-    "scheme": "mindbridge",
+    "name": "NeuBridge",
+    "slug": "neubridge",
+    "scheme": "neubridge",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,14 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hawkinsempire.mindbridge",
+      "bundleIdentifier": "com.hawkinsempire.neubridge",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "MindBridge needs your location for the emergency SOS feature to send your position to caregivers.",
-        "NSMicrophoneUsageDescription": "MindBridge uses the microphone for voice-based spelling exercises and voice message recording."
+        "NSLocationWhenInUseUsageDescription": "NeuBridge needs your location for the emergency SOS feature to send your position to caregivers.",
+        "NSMicrophoneUsageDescription": "NeuBridge uses the microphone for voice-based spelling exercises and voice message recording."
       }
     },
     "android": {
-      "package": "com.hawkinsempire.mindbridge",
+      "package": "com.hawkinsempire.neubridge",
       "permissions": ["ACCESS_FINE_LOCATION", "RECORD_AUDIO"],
       "adaptiveIcon": {
         "backgroundColor": "#F4F1DE",

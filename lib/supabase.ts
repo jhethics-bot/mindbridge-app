@@ -1,5 +1,5 @@
 /**
- * MindBridge Supabase Client
+ * NeuBridge Supabase Client
  * 
  * SETUP: Replace SUPABASE_URL and SUPABASE_ANON_KEY with your project values.
  * These should be moved to environment variables before production.

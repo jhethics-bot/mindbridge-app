@@ -1,5 +1,5 @@
 /**
- * MindBridge AI Adaptive Difficulty Engine
+ * NeuBridge AI Adaptive Difficulty Engine
  * 
  * Powered by Claude API (Sonnet 4). Calibrates daily activity difficulty
  * based on mood, performance data, and disease stage.
@@ -23,7 +23,7 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 // For Expo: use expo-secure-store or environment config
 const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY || '';
 
-const SYSTEM_PROMPT = `You are the MindBridge Adaptive Difficulty Engine. Your role is to calibrate cognitive activities for a person living with Alzheimer's disease. You receive their current disease stage, today's mood, and 7 days of performance data.
+const SYSTEM_PROMPT = `You are the NeuBridge Adaptive Difficulty Engine. Your role is to calibrate cognitive activities for a person living with Alzheimer's disease. You receive their current disease stage, today's mood, and 7 days of performance data.
 
 CRITICAL RULES:
 - NEVER increase difficulty by more than 10% per day

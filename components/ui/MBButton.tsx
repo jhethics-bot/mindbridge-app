@@ -1,5 +1,5 @@
 /**
- * MBButton - MindBridge Accessible Button
+ * MBButton - NeuBridge Accessible Button
  * 
  * Enforces minimum 56dp touch target, WCAG AAA contrast,
  * and full screen reader support. Use this for ALL buttons

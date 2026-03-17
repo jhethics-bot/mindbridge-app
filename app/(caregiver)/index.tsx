@@ -115,7 +115,7 @@ export default function CaregiverDashboard() {
     <SafeAreaView style={st.safeArea}>
       <ScrollView contentContainerStyle={st.scroll}>
         <View style={st.header}>
-          <Text style={st.title}>MindBridge</Text>
+          <Text style={st.title}>NeuBridge</Text>
           <Text style={st.subtitle}>Caregiver Dashboard</Text>
         </View>
 

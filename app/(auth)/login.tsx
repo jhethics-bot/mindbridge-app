@@ -46,7 +46,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={st.safeArea}>
       <KeyboardAvoidingView style={st.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Text style={st.logo}>MindBridge</Text>
+        <Text style={st.logo}>NeuBridge</Text>
         <Text style={st.tagline}>Cognitive Care Companion</Text>
 
         {error ? <Text style={st.error}>{error}</Text> : null}

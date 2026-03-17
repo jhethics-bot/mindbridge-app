@@ -2,10 +2,10 @@
  * Music Player Screen with Animated Backgrounds
  *
  * Queries family_media (type=music) for songs with playback_url.
- * Uses expo-av Audio.Sound for real playback.
+ * Audio playback deferred to dev client build (expo-av not available in Expo Go).
  * Animated backgrounds per animation_theme using Reanimated.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,13 +15,11 @@ import {
   Dimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Audio, AVPlaybackStatus } from 'expo-av';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withTiming,
-  withSequence,
   withDelay,
   Easing,
   interpolate,
@@ -225,9 +223,6 @@ export default function MusicScreen() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [positionMs, setPositionMs] = useState(0);
-  const [durationMs, setDurationMs] = useState(0);
-  const soundRef = useRef<Audio.Sound | null>(null);
   const patientIdRef = useRef('');
   const startTimeRef = useRef(Date.now());
 
@@ -240,10 +235,6 @@ export default function MusicScreen() {
   useEffect(() => {
     (async () => {
       try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-        });
         const p = await getCurrentProfile();
         if (p) {
           setStage(p.stage as DiseaseStage);
@@ -270,71 +261,25 @@ export default function MusicScreen() {
         console.error('[music] Load error:', err);
       }
     })();
-    return () => { unloadSound(); };
   }, []);
 
-  const unloadSound = useCallback(async () => {
-    if (soundRef.current) {
-      try { await soundRef.current.unloadAsync(); } catch {}
-      soundRef.current = null;
-    }
-  }, []);
-
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded) return;
-    setPositionMs(status.positionMillis);
-    setDurationMs(status.durationMillis || 0);
-    if (status.didJustFinish) {
-      setIsPlaying(false);
-    }
-  }, []);
-
-  const playSong = useCallback(async (index: number) => {
+  const selectSong = (index: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await unloadSound();
-
-    const song = songs[index];
-    if (!song?.playback_url) return;
-
     setCurrentIndex(index);
     setIsPlaying(true);
-    setPositionMs(0);
-    setDurationMs(song.duration_seconds * 1000);
     startTimeRef.current = Date.now();
+  };
 
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: song.playback_url },
-        { shouldPlay: true },
-        onPlaybackStatusUpdate
-      );
-      soundRef.current = sound;
-    } catch (err) {
-      console.error('[music] Playback error:', err);
-      setIsPlaying(false);
-    }
-  }, [songs, unloadSound, onPlaybackStatusUpdate]);
-
-  const togglePlay = useCallback(async () => {
+  const togglePlay = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (!soundRef.current) return;
-    try {
-      if (isPlaying) {
-        await soundRef.current.pauseAsync();
-        setIsPlaying(false);
-      } else {
-        await soundRef.current.playAsync();
-        setIsPlaying(true);
-      }
-    } catch {}
-  }, [isPlaying]);
+    setIsPlaying(!isPlaying);
+  };
 
-  const stopAndLog = useCallback(async () => {
+  const stopAndLog = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
-    await unloadSound();
     setIsPlaying(false);
     setCurrentIndex(null);
-    setPositionMs(0);
     try {
       if (patientIdRef.current && currentSong) {
         await logActivitySession({
@@ -348,16 +293,13 @@ export default function MusicScreen() {
         });
       }
     } catch {}
-  }, [currentSong, stage, unloadSound]);
+  };
 
-  function formatTime(ms: number) {
-    const totalSec = Math.floor(ms / 1000);
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
+  function formatDuration(seconds: number) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
-
-  const progress = durationMs > 0 ? positionMs / durationMs : 0;
 
   // ============================================
   // RENDER: NOW PLAYING
@@ -388,16 +330,9 @@ export default function MusicScreen() {
               <Text style={[st.songDesc, { color: subColor }]}>{currentSong.description}</Text>
             ) : null}
 
-            {/* Progress bar */}
-            <View style={st.progressContainer}>
-              <View style={st.progressTrack}>
-                <View style={[st.progressFill, { width: `${Math.min(progress * 100, 100)}%` }]} />
-              </View>
-              <View style={st.timeRow}>
-                <Text style={[st.timeText, { color: subColor }]}>{formatTime(positionMs)}</Text>
-                <Text style={[st.timeText, { color: subColor }]}>{formatTime(durationMs)}</Text>
-              </View>
-            </View>
+            <Text style={[st.durationText, { color: subColor }]}>
+              {formatDuration(currentSong.duration_seconds)}
+            </Text>
 
             {/* Controls */}
             <Pressable
@@ -417,6 +352,10 @@ export default function MusicScreen() {
             >
               <Text style={[st.stopBtnText, { color: subColor }]}>⏹ Stop</Text>
             </Pressable>
+
+            <Text style={[st.comingSoonNote, { color: subColor }]}>
+              Audio playback available in next update
+            </Text>
           </View>
 
           {/* Song list at bottom */}
@@ -431,7 +370,7 @@ export default function MusicScreen() {
               const active = index === currentIndex;
               return (
                 <Pressable
-                  onPress={() => playSong(index)}
+                  onPress={() => selectSong(index)}
                   accessibilityRole="button"
                   accessibilityLabel={`Play ${item.display_name}`}
                   style={[st.miniCard, active && st.miniCardActive]}
@@ -473,7 +412,7 @@ export default function MusicScreen() {
           keyExtractor={item => item.id}
           renderItem={({ item, index }) => (
             <Pressable
-              onPress={() => playSong(index)}
+              onPress={() => selectSong(index)}
               accessibilityRole="button"
               accessibilityLabel={`Play ${item.display_name}`}
               style={({ pressed }) => [st.songCard, pressed && { backgroundColor: COLORS.glow }]}
@@ -537,34 +476,17 @@ const st = StyleSheet.create({
   songDesc: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
-
-  // Progress
-  progressContainer: {
-    width: '100%',
+  durationText: {
+    fontSize: 14,
+    fontWeight: '500',
     marginBottom: 28,
   },
-  progressTrack: {
-    width: '100%',
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-    backgroundColor: COLORS.teal,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  timeText: {
+  comingSoonNote: {
     fontSize: 13,
-    fontWeight: '500',
+    marginTop: 16,
+    opacity: 0.6,
   },
 
   // Controls

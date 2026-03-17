@@ -1,5 +1,5 @@
 /**
- * MindBridge Accessibility Constants
+ * NeuBridge Accessibility Constants
  * Clinically derived from DEMIGNED principles and WCAG 2.1 AAA
  * These values are MINIMUMS. Components may exceed them.
  */

@@ -1,5 +1,5 @@
 /**
- * MindBridge: Doctor Visit Report Edge Function
+ * NeuBridge: Doctor Visit Report Edge Function
  *
  * Generates a comprehensive report for physician visits by aggregating
  * patient data over a configurable time range (30/60/90 days).
