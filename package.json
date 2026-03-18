@@ -5,7 +5,9 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios"
+    "ios": "expo start --ios",
+    "clean": "rm -rf node_modules && rm -f package-lock.json && rm -rf .expo && npm install --force",
+    "reset": "rm -rf node_modules && rm -f package-lock.json && rm -rf .expo && npm install --force && npx expo start --clear"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.0",
