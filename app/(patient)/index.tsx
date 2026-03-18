@@ -267,8 +267,16 @@ export default function PatientHome() {
           Your activities today
         </Text>
 
-        {/* Activity cards */}
-        {queue.map((item, idx) => {
+        {/* Activity cards - deduplicate by route */}
+        {(() => {
+          const seen = new Set();
+          return queue.filter((item: any) => {
+            const route = ROUTE_MAP[item.activity];
+            if (!route || seen.has(route)) return false;
+            seen.add(route);
+            return true;
+          });
+        })().map((item, idx) => {
           const meta = ACTIVITY_META[item.activity] || {
             label: item.activity.replace(/_/g, ' '),
             emoji: '🎯',
