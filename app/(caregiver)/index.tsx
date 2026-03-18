@@ -22,6 +22,9 @@ interface DashboardData {
   sosThisWeek: number;
   recentActivities: { activity: string; created_at: string }[];
   moodWeek: { mood: string; created_at: string }[];
+  activeMeds: number;
+  totalMeds: number;
+  recentObservations: { note: string; category: string; created_at: string }[];
 }
 
 const MOOD_EMOJIS: Record<string, string> = {
@@ -53,7 +56,7 @@ export default function CaregiverDashboard() {
       const today = new Date().toISOString().split('T')[0];
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-      const [moodRes, actRes, sosRes, weekMoodRes] = await Promise.all([
+      const [moodRes, actRes, sosRes, weekMoodRes, medsRes, obsRes] = await Promise.all([
         supabase.from('mood_checkins').select('mood')
           .eq('patient_id', pid).gte('created_at', `${today}T00:00:00`)
           .order('created_at', { ascending: false }).limit(1),
@@ -65,12 +68,18 @@ export default function CaregiverDashboard() {
         supabase.from('mood_checkins').select('mood, created_at')
           .eq('patient_id', pid).gte('created_at', weekAgo)
           .order('created_at', { ascending: false }),
+        supabase.from('medications').select('id, is_active')
+          .eq('patient_id', pid),
+        supabase.from('observations').select('note, category, created_at')
+          .eq('patient_id', pid)
+          .order('created_at', { ascending: false }).limit(3),
       ]);
 
       const todayMood = moodRes.data?.[0]?.mood || null;
       const activities = actRes.data || [];
       const totalMin = Math.round(activities.reduce((sum: number, a: any) => sum + (a.duration_seconds || 0), 0) / 60);
 
+      const allMeds = medsRes.data || [];
       setData({
         patientName: patient?.display_name || 'Patient',
         patientStage: patient?.stage || 'middle',
@@ -81,6 +90,9 @@ export default function CaregiverDashboard() {
         sosThisWeek: sosRes.data?.length || 0,
         recentActivities: activities.slice(0, 5),
         moodWeek: weekMoodRes.data || [],
+        activeMeds: allMeds.filter((m: any) => m.is_active).length,
+        totalMeds: allMeds.length,
+        recentObservations: obsRes.data || [],
       });
     } catch (err) {
       console.error('Dashboard error:', err);
@@ -172,6 +184,31 @@ export default function CaregiverDashboard() {
                 </View>
               </View>
             )}
+
+            <View style={st.section}>
+              <Text style={st.sectionTitle}>Medications</Text>
+              <View style={st.medCard}>
+                <Text style={st.medCount}>{data.activeMeds} of {data.totalMeds}</Text>
+                <Text style={st.medLabel}>active medications</Text>
+              </View>
+            </View>
+
+            {data.recentObservations.length > 0 && (
+              <View style={st.section}>
+                <Text style={st.sectionTitle}>Latest Observations</Text>
+                {data.recentObservations.map((o, i) => (
+                  <View key={i} style={st.obsRow}>
+                    <View style={st.obsCategoryBadge}>
+                      <Text style={st.obsCategoryText}>{o.category}</Text>
+                    </View>
+                    <Text style={st.obsNote} numberOfLines={2}>{o.note}</Text>
+                    <Text style={st.obsTime}>
+                      {new Date(o.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </>
         ) : (
           <View style={st.emptyState}>
@@ -232,6 +269,20 @@ const st = StyleSheet.create({
   moodDate: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   emptyState: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { fontSize: 20, fontWeight: '600', color: COLORS.navy },
+  medCard: {
+    backgroundColor: COLORS.white, borderRadius: 12, padding: 16, alignItems: 'center',
+  },
+  medCount: { fontSize: 28, fontWeight: '700', color: COLORS.teal },
+  medLabel: { fontSize: 14, color: COLORS.gray, marginTop: 4 },
+  obsRow: {
+    backgroundColor: COLORS.white, borderRadius: 12, padding: 12, marginBottom: 8,
+  },
+  obsCategoryBadge: {
+    alignSelf: 'flex-start', backgroundColor: COLORS.teal + '20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginBottom: 4,
+  },
+  obsCategoryText: { fontSize: 12, fontWeight: '600', color: COLORS.teal },
+  obsNote: { fontSize: 15, color: COLORS.navy, lineHeight: 20 },
+  obsTime: { fontSize: 12, color: COLORS.gray, marginTop: 4 },
   navGrid: { flexDirection: 'row', gap: 10, marginTop: 16, marginBottom: 20 },
   navCard: {
     flex: 1, backgroundColor: COLORS.white, borderRadius: 16, padding: 16, alignItems: 'center',
