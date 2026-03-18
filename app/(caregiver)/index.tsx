@@ -224,6 +224,16 @@ export default function CaregiverDashboard() {
         </View>
 
         <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/report' as any); }}
+          accessibilityRole="button"
+          accessibilityLabel="Weekly Report"
+          style={({ pressed }) => [st.reportBtn, pressed && { backgroundColor: COLORS.glow }]}
+        >
+          <Text style={{ fontSize: 20, marginRight: 10 }}>📊</Text>
+          <Text style={st.reportBtnText}>Weekly Report</Text>
+        </Pressable>
+
+        <Pressable
           onPress={async () => { await supabase.auth.signOut(); router.replace('/'); }}
           style={st.logoutBtn}
         >
@@ -289,6 +299,12 @@ const st = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
   },
   navLabel: { fontSize: 14, fontWeight: '600', color: COLORS.navy, marginTop: 8 },
+  reportBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.white, borderRadius: 16, padding: 16, marginBottom: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+  },
+  reportBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.navy },
   logoutBtn: { alignSelf: 'center', padding: 16 },
   logoutText: { fontSize: 16, color: COLORS.coral, fontWeight: '600' },
 });
