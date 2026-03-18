@@ -224,6 +224,26 @@ export default function CaregiverDashboard() {
         </View>
 
         <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/community' as any); }}
+          accessibilityRole="button"
+          accessibilityLabel="Community"
+          style={({ pressed }) => [st.reportBtn, pressed && { backgroundColor: COLORS.glow }]}
+        >
+          <Text style={{ fontSize: 20, marginRight: 10 }}>💬</Text>
+          <Text style={st.reportBtnText}>Community</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/appointments' as any); }}
+          accessibilityRole="button"
+          accessibilityLabel="Appointments"
+          style={({ pressed }) => [st.reportBtn, pressed && { backgroundColor: COLORS.glow }]}
+        >
+          <Text style={{ fontSize: 20, marginRight: 10 }}>📅</Text>
+          <Text style={st.reportBtnText}>Appointments</Text>
+        </Pressable>
+
+        <Pressable
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/report' as any); }}
           accessibilityRole="button"
           accessibilityLabel="Weekly Report"
