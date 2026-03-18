@@ -6,7 +6,7 @@
  * and accessible, regardless of screen content.
  */
 import React from 'react';
-import { View, StyleSheet, StatusBar } from 'react-native';
+import { View, StyleSheet, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../../constants/colors';
@@ -35,7 +35,14 @@ export function MBSafeArea({
   };
 
   const handleSOS = () => {
-    router.push('/(patient)/sos');
+    Alert.alert(
+      'Send SOS?',
+      'This will send your location to your emergency contacts.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Yes, Send SOS', style: 'destructive', onPress: () => router.push('/(patient)/sos') },
+      ]
+    );
   };
 
   return (

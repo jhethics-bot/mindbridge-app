@@ -22,14 +22,13 @@ interface Photo {
   description?: string;
   person_name?: string;
   era?: string;
-  storage_path: string;
-  url?: string;
+  playback_url?: string;
 }
 
 const FALLBACK_PHOTOS: Photo[] = [
-  { id: '1', display_name: 'Family Gathering', era: '1990s', storage_path: '', description: 'A warm family gathering' },
-  { id: '2', display_name: 'Garden', era: '2000s', storage_path: '', description: 'Beautiful flowers in the garden' },
-  { id: '3', display_name: 'Holiday', era: '1980s', storage_path: '', description: 'A holiday celebration' },
+  { id: '1', display_name: 'Family Gathering', era: '1990s', description: 'A warm family gathering' },
+  { id: '2', display_name: 'Garden', era: '2000s', description: 'Beautiful flowers in the garden' },
+  { id: '3', display_name: 'Holiday', era: '1980s', description: 'A holiday celebration' },
 ];
 
 export default function PhotosScreen() {
@@ -57,18 +56,15 @@ export default function PhotosScreen() {
         .order('sort_order');
 
       if (data && data.length > 0) {
-        const withUrls = data.map((m: any) => ({
+        const mapped = data.map((m: any) => ({
           id: m.id,
           display_name: m.display_name,
           description: m.description,
           person_name: m.person_name,
           era: m.era,
-          storage_path: m.storage_path,
-          url: m.storage_path
-            ? supabase.storage.from('family-media').getPublicUrl(m.storage_path).data.publicUrl
-            : undefined,
+          playback_url: m.playback_url || undefined,
         }));
-        setPhotos(withUrls);
+        setPhotos(mapped);
       }
     } catch {}
   }
@@ -121,11 +117,13 @@ export default function PhotosScreen() {
               accessibilityLabel={item.display_name || 'Photo'}
               style={[st.photoCard, { width: imgSize }]}
             >
-              {item.url ? (
-                <Image source={{ uri: item.url }} style={[st.photoImage, { width: imgSize - 16, height: imgSize - 16 }]} />
+              {item.playback_url ? (
+                <Image source={{ uri: item.playback_url }} style={[st.photoImage, { width: imgSize - 16, height: imgSize - 16 }]} resizeMode="cover" />
               ) : (
                 <View style={[st.photoPlaceholder, { width: imgSize - 16, height: imgSize - 16 }]}>
                   <Text style={{ fontSize: 48 }}>📷</Text>
+                  {item.display_name && <Text style={st.placeholderName}>{item.display_name}</Text>}
+                  {item.description && <Text style={st.placeholderDesc} numberOfLines={2}>{item.description}</Text>}
                 </View>
               )}
               <Text style={[st.photoTitle, { fontSize: Math.min(fontSize, 18) }]} numberOfLines={1}>
@@ -141,7 +139,7 @@ export default function PhotosScreen() {
         <Modal visible={!!selectedPhoto} animationType="fade" transparent>
           <View style={st.modalOverlay}>
             <View style={st.modalContent}>
-              {selectedPhoto?.url ? (
+              {selectedPhoto?.playback_url ? (
                 <Image source={{ uri: selectedPhoto.url }}
                   style={st.modalImage} resizeMode="contain" />
               ) : (
@@ -174,8 +172,10 @@ const st = StyleSheet.create({
   },
   photoImage: { borderRadius: 12 },
   photoPlaceholder: {
-    borderRadius: 12, backgroundColor: COLORS.glow, justifyContent: 'center', alignItems: 'center',
+    borderRadius: 12, backgroundColor: COLORS.glow, justifyContent: 'center', alignItems: 'center', padding: 8,
   },
+  placeholderName: { fontSize: 14, fontWeight: '600', color: COLORS.navy, marginTop: 8, textAlign: 'center' },
+  placeholderDesc: { fontSize: 12, color: COLORS.gray, marginTop: 4, textAlign: 'center' },
   photoTitle: { fontWeight: '600', color: COLORS.navy, marginTop: 8 },
   photoEra: { fontSize: 14, color: COLORS.gray, marginTop: 2 },
   modalOverlay: {
