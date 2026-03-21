@@ -1,65 +1,25 @@
-/**
- * NeuBridge Push Notifications Service
- *
- * Handles Expo push token registration, local notification scheduling
- * (medication reminders, activity nudges), and incoming notification
- * response routing. Tokens are persisted to Supabase push_tokens table.
- */
+// lib/notifications.ts
+// Push notifications are only available in development builds, not Expo Go.
+// All functions gracefully no-op when running in Expo Go.
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
-// Lazy-load expo-notifications to avoid crashes in Expo Go dev builds
-let Notifications: typeof import('expo-notifications') | null = null;
-
-async function getNotifications() {
-  if (!Notifications) {
-    try {
-      Notifications = await import('expo-notifications');
-    } catch (e) {
-      console.warn('[Notifications] expo-notifications not available:', e);
-      return null;
-    }
-  }
-  return Notifications;
-}
-
-// Configure how notifications appear when app is foregrounded
-// Wrapped in try/catch for Expo Go compatibility
-try {
-  const NotifModule = require('expo-notifications');
-  NotifModule.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-} catch (e) {
-  console.warn('[Notifications] Could not set notification handler:', e);
-}
+const isExpoGo = Constants.appOwnership === 'expo';
 
 /**
  * Register for push notifications and save token to Supabase.
- * Call once after successful auth.
+ * No-ops in Expo Go.
  */
 export async function registerForPushNotifications(userId: string): Promise<string | null> {
-  // Push only works on physical devices
-  if (Platform.OS === 'web') {
-    console.log('Push notifications require a mobile device');
-    return null;
-  }
-
-  const Notif = await getNotifications();
-  if (!Notif) return null;
-
+  if (isExpoGo || Platform.OS === 'web') return null;
   try {
-    const { status: existing } = await Notif.getPermissionsAsync();
+    const Notifications = await import('expo-notifications');
+    const { status: existing } = await Notifications.getPermissionsAsync();
     let finalStatus = existing;
 
     if (existing !== 'granted') {
-      const { status } = await Notif.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
@@ -68,25 +28,25 @@ export async function registerForPushNotifications(userId: string): Promise<stri
       return null;
     }
 
-    // Android needs a notification channel
+    // Android needs notification channels
     if (Platform.OS === 'android') {
-      await Notif.setNotificationChannelAsync('default', {
+      await Notifications.setNotificationChannelAsync('default', {
         name: 'NeuBridge',
-        importance: Notif.AndroidImportance.DEFAULT,
+        importance: Notifications.AndroidImportance.DEFAULT,
         vibrationPattern: [0, 250],
         lightColor: '#2A9D8F',
       });
 
-      await Notif.setNotificationChannelAsync('medications', {
+      await Notifications.setNotificationChannelAsync('medications', {
         name: 'Medication Reminders',
-        importance: Notif.AndroidImportance.HIGH,
+        importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#E9C46A',
       });
     }
 
-    const tokenData = await Notif.getExpoPushTokenAsync({
-      projectId: undefined, // Uses app.json expo.extra.eas.projectId
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: undefined,
     });
     const token = tokenData.data;
 
@@ -111,6 +71,56 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 }
 
 /**
+ * Configure foreground notification display.
+ * No-ops in Expo Go.
+ */
+export function setNotificationHandler(): void {
+  if (isExpoGo) return;
+  import('expo-notifications').then((Notifications) => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }).catch(() => {});
+}
+
+/**
+ * Add listeners for incoming notifications and tap responses.
+ * Returns cleanup object with remove(). No-ops in Expo Go.
+ */
+export function addNotificationListeners(
+  onNotificationTap?: (data: Record<string, unknown>) => void
+): { remove: () => void } {
+  if (isExpoGo) return { remove: () => {} };
+
+  let receivedSub: any;
+  let responseSub: any;
+
+  import('expo-notifications').then((Notifications) => {
+    receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+      console.log('Notification received:', notification.request.content.title);
+    });
+
+    responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as Record<string, unknown>;
+      onNotificationTap?.(data);
+    });
+  }).catch(() => {});
+
+  return {
+    remove: () => {
+      receivedSub?.remove();
+      responseSub?.remove();
+    },
+  };
+}
+
+/**
  * Schedule a local medication reminder notification.
  */
 export async function scheduleMedicationReminder(params: {
@@ -119,24 +129,27 @@ export async function scheduleMedicationReminder(params: {
   minute: number;
   identifier?: string;
 }): Promise<string> {
-  const Notif = await getNotifications();
-  if (!Notif) return '';
-
-  const id = await Notif.scheduleNotificationAsync({
-    content: {
-      title: 'Medication Reminder 💊',
-      body: `Time to take ${params.medicationName}`,
-      data: { type: 'medication', name: params.medicationName },
-      sound: true,
-    },
-    trigger: {
-      type: Notif.SchedulableTriggerInputTypes.DAILY,
-      hour: params.hour,
-      minute: params.minute,
-    },
-    identifier: params.identifier,
-  });
-  return id;
+  if (isExpoGo) return '';
+  try {
+    const Notifications = await import('expo-notifications');
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Medication Reminder 💊',
+        body: `Time to take ${params.medicationName}`,
+        data: { type: 'medication', name: params.medicationName },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: params.hour,
+        minute: params.minute,
+      },
+      identifier: params.identifier,
+    });
+    return id;
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -147,51 +160,62 @@ export async function scheduleActivityNudge(params: {
   minute: number;
   patientName?: string;
 }): Promise<string> {
-  const Notif = await getNotifications();
-  if (!Notif) return '';
-
-  const name = params.patientName || 'your loved one';
-  const id = await Notif.scheduleNotificationAsync({
-    content: {
-      title: 'Daily Activities Ready 🌟',
-      body: `${name}'s personalized activities are waiting. A few minutes can brighten the day!`,
-      data: { type: 'activity_nudge' },
-    },
-    trigger: {
-      type: Notif.SchedulableTriggerInputTypes.DAILY,
-      hour: params.hour,
-      minute: params.minute,
-    },
-    identifier: 'daily-activity-nudge',
-  });
-  return id;
+  if (isExpoGo) return '';
+  try {
+    const Notifications = await import('expo-notifications');
+    const name = params.patientName || 'your loved one';
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Daily Activities Ready 🌟',
+        body: `${name}'s personalized activities are waiting. A few minutes can brighten the day!`,
+        data: { type: 'activity_nudge' },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: params.hour,
+        minute: params.minute,
+      },
+      identifier: 'daily-activity-nudge',
+    });
+    return id;
+  } catch {
+    return '';
+  }
 }
 
 /**
  * Cancel a specific scheduled notification by identifier.
  */
 export async function cancelNotification(identifier: string): Promise<void> {
-  const Notif = await getNotifications();
-  if (!Notif) return;
-  await Notif.cancelScheduledNotificationAsync(identifier);
+  if (isExpoGo) return;
+  try {
+    const Notifications = await import('expo-notifications');
+    await Notifications.cancelScheduledNotificationAsync(identifier);
+  } catch {}
 }
 
 /**
  * Cancel all scheduled notifications.
  */
 export async function cancelAllNotifications(): Promise<void> {
-  const Notif = await getNotifications();
-  if (!Notif) return;
-  await Notif.cancelAllScheduledNotificationsAsync();
+  if (isExpoGo) return;
+  try {
+    const Notifications = await import('expo-notifications');
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch {}
 }
 
 /**
  * Get all currently scheduled notifications.
  */
 export async function getScheduledNotifications() {
-  const Notif = await getNotifications();
-  if (!Notif) return [];
-  return Notif.getAllScheduledNotificationsAsync();
+  if (isExpoGo) return [];
+  try {
+    const Notifications = await import('expo-notifications');
+    return Notifications.getAllScheduledNotificationsAsync();
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -202,33 +226,4 @@ export async function deactivatePushToken(userId: string): Promise<void> {
     .from('push_tokens')
     .update({ is_active: false })
     .eq('user_id', userId);
-}
-
-/**
- * Add listeners for incoming notifications and tap responses.
- * Returns cleanup function. Call in useEffect.
- */
-export function addNotificationListeners(onNotificationTap?: (data: Record<string, unknown>) => void) {
-  try {
-    const NotifModule = require('expo-notifications');
-
-    // Fires when notification received while app is foregrounded
-    const receivedSub = NotifModule.addNotificationReceivedListener((notification: any) => {
-      console.log('Notification received:', notification.request.content.title);
-    });
-
-    // Fires when user taps a notification
-    const responseSub = NotifModule.addNotificationResponseReceivedListener((response: any) => {
-      const data = response.notification.request.content.data as Record<string, unknown>;
-      onNotificationTap?.(data);
-    });
-
-    return () => {
-      receivedSub.remove();
-      responseSub.remove();
-    };
-  } catch (e) {
-    console.warn('[Notifications] Could not add listeners:', e);
-    return () => {};
-  }
 }

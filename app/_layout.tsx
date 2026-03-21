@@ -7,13 +7,17 @@ import {
   registerForPushNotifications,
   deactivatePushToken,
   addNotificationListeners,
+  setNotificationHandler,
 } from "../lib/notifications";
 
 export default function RootLayout() {
   const router = useRouter();
-  const notifCleanup = useRef<(() => void) | null>(null);
+  const notifCleanup = useRef<{ remove: () => void } | null>(null);
 
   useEffect(() => {
+    // Configure foreground notification display
+    setNotificationHandler();
+
     // Set up notification tap handler
     notifCleanup.current = addNotificationListeners((data) => {
       if (data.type === 'medication') {
@@ -22,7 +26,7 @@ export default function RootLayout() {
         router.push('/(patient)' as any);
       }
     });
-    return () => notifCleanup.current?.();
+    return () => notifCleanup.current?.remove();
   }, []);
 
   useEffect(() => {
