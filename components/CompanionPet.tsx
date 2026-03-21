@@ -1,19 +1,8 @@
 // components/CompanionPet.tsx
-// Animated companion pet using View-based circles + Reanimated 3
-// Replaces Skia Canvas (not installed) with absolute-positioned rounded Views
-import React, { useEffect, useCallback } from 'react';
+// Companion pet using View-based circles (static, no Reanimated)
+// Temporary: Reanimated removed for Expo Go compatibility
+import React, { useCallback } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
-import {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withSequence,
-  withSpring,
-  Easing,
-  cancelAnimation,
-} from 'react-native-reanimated';
-import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
 import type { PetMoodState, PetType } from '../lib/petMoodEngine';
@@ -79,87 +68,9 @@ export const CompanionPet: React.FC<CompanionPetProps> = ({
 }) => {
   const palette = PET_PALETTES[colorPrimary] ?? PET_PALETTES.golden;
 
-  // ── Shared animation values ──────────────────────────────
-  const translateY    = useSharedValue(0);
-  const scale         = useSharedValue(1);
-  const rotateZ       = useSharedValue(0);
-  const opacity       = useSharedValue(1);
-
-  // ── Trigger idle animation based on moodState ────────────
-  useEffect(() => {
-    cancelAnimation(translateY);
-    cancelAnimation(scale);
-    cancelAnimation(rotateZ);
-
-    switch (moodState) {
-      case 'happy':
-        translateY.value = withRepeat(
-          withSequence(
-            withTiming(-10, { duration: 300, easing: Easing.out(Easing.quad) }),
-            withTiming(0,   { duration: 300, easing: Easing.in(Easing.quad) }),
-          ),
-          -1,
-          false
-        );
-        break;
-
-      case 'calm':
-        scale.value = withRepeat(
-          withSequence(
-            withTiming(1.03, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-            withTiming(1.0,  { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-          ),
-          -1,
-          false
-        );
-        break;
-
-      case 'sleepy':
-        translateY.value = withRepeat(
-          withSequence(
-            withTiming(4, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
-            withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
-          ),
-          -1,
-          false
-        );
-        break;
-
-      case 'cozy':
-        scale.value = withRepeat(
-          withSequence(
-            withTiming(1.02, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
-            withTiming(0.99, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
-          ),
-          -1,
-          false
-        );
-        break;
-
-      case 'curious':
-        rotateZ.value = withRepeat(
-          withSequence(
-            withTiming(0.15,  { duration: 600, easing: Easing.out(Easing.quad) }),
-            withTiming(0,     { duration: 400, easing: Easing.in(Easing.quad) }),
-            withTiming(-0.08, { duration: 400, easing: Easing.out(Easing.quad) }),
-            withTiming(0,     { duration: 400, easing: Easing.in(Easing.quad) }),
-            withTiming(0,     { duration: 2000 }),
-          ),
-          -1,
-          false
-        );
-        break;
-    }
-  }, [moodState]);
-
   // ── Tap interaction handler ──────────────────────────────
   const handleTap = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    scale.value = withSequence(
-      withSpring(1.25, { damping: 4, stiffness: 300 }),
-      withSpring(1.0,  { damping: 8, stiffness: 200 }),
-    );
 
     try {
       await supabase.from('pet_interactions').insert({
@@ -174,16 +85,6 @@ export const CompanionPet: React.FC<CompanionPetProps> = ({
     onInteraction?.('pet');
   }, [petId, patientId, onInteraction]);
 
-  // ── Animated container style ─────────────────────────────
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: translateY.value },
-      { scale: scale.value },
-      { rotate: `${rotateZ.value}rad` },
-    ],
-    opacity: opacity.value,
-  }));
-
   // ── Render ───────────────────────────────────────────────
   return (
     <View style={styles.container}>
@@ -194,7 +95,7 @@ export const CompanionPet: React.FC<CompanionPetProps> = ({
         accessibilityLabel={`${petName} the ${petType}. Tap to interact.`}
         accessibilityRole="button"
       >
-        <Animated.View style={animatedStyle}>
+        <View>
           <View style={{ width: size, height: size, position: 'relative' }}>
             <PetSprite
               type={petType}
@@ -203,7 +104,7 @@ export const CompanionPet: React.FC<CompanionPetProps> = ({
               size={size}
             />
           </View>
-        </Animated.View>
+        </View>
       </TouchableOpacity>
 
       <Text style={styles.petName}>{petName}</Text>
