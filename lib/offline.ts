@@ -6,7 +6,7 @@
  * flushes the queue to Supabase. Core activities work without network.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import { AppState, AppStateStatus } from 'react-native';
 import { supabase } from './supabase';
 
 const KEYS = {
@@ -43,17 +43,35 @@ export function onConnectivityChange(cb: (online: boolean) => void): () => void 
  * Initialize connectivity monitoring. Call once at app start.
  */
 export function initOfflineSync(): () => void {
-  const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
+  // Check connectivity on app state change (foreground/background)
+  async function checkConnectivity() {
     const wasOffline = !_isOnline;
-    _isOnline = state.isConnected === true && state.isInternetReachable !== false;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch('https://gzopkdbuznupcvtsmisb.supabase.co/rest/v1/', {
+        method: 'HEAD',
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      _isOnline = response.ok;
+    } catch {
+      _isOnline = false;
+    }
     _listeners.forEach((cb) => cb(_isOnline));
-
-    // If we just came back online, flush pending writes
     if (wasOffline && _isOnline) {
       flushPendingWrites();
     }
+  }
+
+  const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+    if (state === 'active') checkConnectivity();
   });
-  return unsubscribe;
+
+  // Initial check
+  checkConnectivity();
+
+  return () => subscription.remove();
 }
 
 // ── Cache Operations ──
