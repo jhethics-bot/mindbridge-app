@@ -11,12 +11,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { MBSafeArea } from '../../components/ui/MBSafeArea';
+import { CompanionPet } from '../../components/CompanionPet';
 import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
 import { useTimeTheme, getPersonalizedGreeting } from '../../lib/time-theme';
 import { supabase } from '../../lib/supabase';
+import { usePetStore } from '../../stores/petStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 // ============================================
 // ROUTE MAP - activity name to expo-router path
@@ -100,6 +104,11 @@ const MOOD_EMOJI: Record<string, string> = {
   happy: '😊', okay: '😐', sad: '😢', confused: '😕', tired: '😴',
 };
 
+// Mood string → numeric score for pet mood engine
+const MOOD_SCORE: Record<string, number> = {
+  happy: 5, okay: 3, sad: 1, confused: 2, tired: 2,
+};
+
 // ============================================
 // COMPONENT
 // ============================================
@@ -113,11 +122,61 @@ export default function PatientHome() {
   const [todayMood, setTodayMood] = useState<string | null>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [displayName, setDisplayName] = useState('there');
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // ---- Companion Pet ----
+  const { pet, moodState, fetchPet, refreshMood, fetchInteractionSummary } = usePetStore();
+  const companionPetEnabled = useSettingsStore(s => s.toggles?.companion_pet_enabled ?? true);
 
   // ---- Initial load: check auth + today's mood ----
   useEffect(() => {
     checkMoodAndLoadQueue();
   }, []);
+
+  // ---- Load pet when user is authenticated ----
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const { data: rel } = await supabase
+          .from('care_relationships')
+          .select('id')
+          .eq('patient_id', userId)
+          .limit(1)
+          .single();
+        if (rel?.id) {
+          fetchPet(rel.id);
+          fetchInteractionSummary();
+        }
+      } catch {
+        // No care relationship — pet feature not available
+      }
+    })();
+  }, [userId]);
+
+  // ---- Refresh pet mood when mood or queue changes ----
+  useEffect(() => {
+    const moodScore = todayMood ? (MOOD_SCORE[todayMood] ?? null) : null;
+    refreshMood(queue.length, moodScore);
+  }, [todayMood, queue]);
+
+  // ---- Morning greeting: log "greet" interaction once per day ----
+  useEffect(() => {
+    if (!pet) return;
+    (async () => {
+      try {
+        const lastOpened = await AsyncStorage.getItem('lastAppOpen');
+        const today = new Date().toDateString();
+        if (lastOpened !== today) {
+          const moodScore = todayMood ? (MOOD_SCORE[todayMood] ?? undefined) : undefined;
+          usePetStore.getState().logInteraction('greet', moodScore);
+          await AsyncStorage.setItem('lastAppOpen', today);
+        }
+      } catch {
+        // Non-critical
+      }
+    })();
+  }, [pet]);
 
   const checkMoodAndLoadQueue = useCallback(async () => {
     try {
@@ -130,6 +189,7 @@ export default function PatientHome() {
       }
 
       console.log('[home] User:', user.id);
+      setUserId(user.id);
 
       // Get profile for display name
       const { data: profile } = await supabase
@@ -249,18 +309,34 @@ export default function PatientHome() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Greeting + mood badge */}
+        {/* Greeting + companion pet + mood badge */}
         <View style={styles.queueHeader}>
           <Text style={[styles.greetingSmall, { color: theme.textColor }]}>
             {getPersonalizedGreeting(theme, displayName)}
           </Text>
-          {todayMood && (
-            <View style={styles.moodBadge}>
-              <Text style={styles.moodBadgeEmoji}>
-                {MOOD_EMOJI[todayMood] || '😊'}
-              </Text>
-            </View>
-          )}
+          <View style={styles.headerRight}>
+            {pet && companionPetEnabled && userId && (
+              <CompanionPet
+                petId={pet.id}
+                petType={pet.petType}
+                petName={pet.petName}
+                colorPrimary={pet.colorPrimary}
+                moodState={moodState}
+                patientId={userId}
+                size={110}
+                onInteraction={(type) => {
+                  console.log('[Home] Pet interaction:', type);
+                }}
+              />
+            )}
+            {todayMood && (
+              <View style={styles.moodBadge}>
+                <Text style={styles.moodBadgeEmoji}>
+                  {MOOD_EMOJI[todayMood] || '😊'}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <Text style={[styles.queueTitle, { color: theme.textColor }]}>
@@ -357,6 +433,10 @@ const styles = StyleSheet.create({
     fontSize: A11Y.fontSizeHeading,
     fontWeight: '700',
     flex: 1,
+  },
+  headerRight: {
+    alignItems: 'center',
+    gap: 8,
   },
   moodBadge: {
     width: 48,

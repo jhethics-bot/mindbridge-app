@@ -23,6 +23,7 @@ interface FeatureToggles {
   sensory_mode_enabled: boolean;
   medication_reminders_enabled: boolean;
   push_notifications_enabled: boolean;
+  companion_pet_enabled: boolean;
 }
 
 const DEFAULT_TOGGLES: FeatureToggles = {
@@ -39,6 +40,7 @@ const DEFAULT_TOGGLES: FeatureToggles = {
   sensory_mode_enabled: false,
   medication_reminders_enabled: true,
   push_notifications_enabled: false,
+  companion_pet_enabled: true,
 };
 
 interface SettingsState {
