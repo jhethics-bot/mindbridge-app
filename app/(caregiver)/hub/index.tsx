@@ -26,7 +26,7 @@ export default function HubHomeScreen() {
         <HubCard title="News" emoji="📰" subtitle="Alzheimer's news, bias removed" onPress={() => router.push('/(caregiver)/hub/news' as any)} />
         <HubCard title="Community" emoji="💬" subtitle="Connect with other caregivers" onPress={() => {}} />
         <HubCard title="Resources" emoji="📚" subtitle="Articles and guides" onPress={() => {}} />
-        <HubCard title="Self-Care" emoji="💛" subtitle="Burnout check, breathing, journal" onPress={() => {}} />
+        <HubCard title="Self-Care" emoji="💛" subtitle="Burnout check, breathing, journal" onPress={() => router.push('/(caregiver)/hub/self-care' as any)} />
         <HubCard title="Crisis Support" emoji="🆘" subtitle="Always here when you need help" onPress={() => {}} />
       </ScrollView>
     </MBSafeArea>
