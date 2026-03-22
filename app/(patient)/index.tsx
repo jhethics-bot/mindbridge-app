@@ -8,9 +8,10 @@
  * 4. If no AI queue, use fallback queue
  * 5. Display queue as large, tappable activity cards (scrollable)
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { MBSafeArea } from '../../components/ui/MBSafeArea';
@@ -128,10 +129,32 @@ export default function PatientHome() {
   const { pet, moodState, fetchPet, refreshMood, fetchInteractionSummary } = usePetStore();
   const companionPetEnabled = useSettingsStore(s => s.toggles?.companion_pet_enabled ?? true);
 
+  // Track if initial load is done to prevent re-fetching on back navigation
+  const hasLoadedRef = useRef(false);
+
   // ---- Initial load: check auth + today's mood ----
-  useEffect(() => {
-    checkMoodAndLoadQueue();
-  }, []);
+  // Uses useFocusEffect to only run on first mount, skips if already loaded
+  useFocusEffect(
+    useCallback(() => {
+      // If data already loaded (queue populated), skip refetch
+      if (hasLoadedRef.current && queue.length > 0) return;
+
+      // 2-second timeout fallback — always show UI, never infinite spinner
+      const timer = setTimeout(() => {
+        if (state === 'loading') {
+          setQueue(FALLBACK_QUEUE);
+          setState('queue');
+        }
+      }, 2000);
+
+      checkMoodAndLoadQueue().finally(() => {
+        clearTimeout(timer);
+        hasLoadedRef.current = true;
+      });
+
+      return () => clearTimeout(timer);
+    }, [])
+  );
 
   // ---- Load pet when user is authenticated ----
   useEffect(() => {

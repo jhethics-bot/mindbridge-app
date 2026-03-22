@@ -1,13 +1,17 @@
 /**
  * Patient Tab Layout
  * Bottom navigation with 5 tabs: Home, Games, Wellness, Connect, More.
- * Non-tab screens are hidden from the tab bar but still navigable via Stack.
+ * Non-tab screens are hidden from the tab bar but still navigable.
+ * Uses safe area insets to avoid overlapping system navigation buttons.
  */
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/colors';
 
 export default function PatientLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -15,8 +19,8 @@ export default function PatientLayout() {
           backgroundColor: COLORS.navy,
           borderTopColor: COLORS.teal,
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 8,
+          height: 64 + insets.bottom,
+          paddingBottom: insets.bottom + 4,
           paddingTop: 4,
         },
         tabBarActiveTintColor: '#14B8A6',

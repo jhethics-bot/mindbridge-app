@@ -1,7 +1,8 @@
 /**
  * More Screen
- * Grid hub providing access to: Music, Faith/Daily Verse, Sensory Calm,
- * Medications, Appointments, and SOS.
+ * Grid hub for patient-appropriate features not in the main tabs:
+ * Music, Daily Verse, Mood Check-In, SOS Help.
+ * Caregiver-only features (Driving, Appointments) are excluded.
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
@@ -35,20 +36,6 @@ const MORE_ITEMS: MoreItem[] = [
     bgColor: '#FEF3C7',
   },
   {
-    id: 'driving',
-    title: 'Driving Check',
-    emoji: '🚗',
-    route: '/(patient)/driving',
-    bgColor: '#E0F2FE',
-  },
-  {
-    id: 'appointments',
-    title: 'Appointments',
-    emoji: '📅',
-    route: '/(patient)/appointments',
-    bgColor: '#DCFCE7',
-  },
-  {
     id: 'mood',
     title: 'Mood Check-In',
     emoji: '😊',
@@ -76,13 +63,17 @@ export default function MoreScreen() {
     <MBSafeArea>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.heading}>More</Text>
-        <Text style={styles.subtitle}>All your features in one place</Text>
+        <Text style={styles.subtitle}>Additional features</Text>
 
         <View style={styles.grid}>
           {MORE_ITEMS.map((item) => (
             <Pressable
               key={item.id}
-              style={[styles.card, { backgroundColor: item.bgColor }]}
+              style={({ pressed }) => [
+                styles.card,
+                { backgroundColor: item.bgColor },
+                pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
+              ]}
               onPress={() => handlePress(item)}
               accessibilityRole="button"
               accessibilityLabel={item.title}
