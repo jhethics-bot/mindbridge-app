@@ -15,16 +15,20 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hawkinsempire.neubridge",
+      "buildNumber": "1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "NeuBridge needs your location for the emergency SOS feature to send your position to caregivers.",
-        "NSMicrophoneUsageDescription": "NeuBridge uses the microphone for voice-based spelling exercises and voice message recording."
+        "NSMicrophoneUsageDescription": "NeuBridge uses the microphone for voice-based spelling exercises and voice message recording.",
+        "NSCameraUsageDescription": "NeuBridge uses the camera to let caregivers upload photos for reminiscence therapy.",
+        "NSPhotoLibraryUsageDescription": "NeuBridge accesses photos for the family photo album and pet memorialization features."
       }
     },
     "android": {
       "package": "com.hawkinsempire.neubridge",
-      "permissions": ["ACCESS_FINE_LOCATION", "RECORD_AUDIO"],
+      "versionCode": 1,
+      "permissions": ["ACCESS_FINE_LOCATION", "RECORD_AUDIO", "CAMERA", "READ_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
-        "backgroundColor": "#F4F1DE",
+        "backgroundColor": "#1B2A4A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -37,6 +41,11 @@
     "plugins": [
       "expo-router",
       "expo-location"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "PLACEHOLDER_EAS_PROJECT_ID"
+      }
+    }
   }
 }

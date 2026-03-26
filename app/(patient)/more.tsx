@@ -50,6 +50,13 @@ const MORE_ITEMS: MoreItem[] = [
     bgColor: '#FCE4EC',
   },
   {
+    id: 'daily_guides',
+    title: 'Daily Guides',
+    emoji: '📋',
+    route: '/(patient)/daily-guides',
+    bgColor: '#E0F7FA',
+  },
+  {
     id: 'about',
     title: 'About',
     emoji: 'ℹ️',

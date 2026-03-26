@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
 import { APP_METADATA } from '../../constants/appMetadata';
+import { LanguageSelector } from '../../components/LanguageSelector';
 import { supabase, getCurrentProfile, getCaregiverPatients } from '../../lib/supabase';
 import type { DiseaseStage } from '../../types';
 import type { PetType } from '../../lib/petMoodEngine';
@@ -316,6 +317,13 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        {/* Language / Idioma */}
+        <View style={st.section}>
+          <Text style={st.sectionTitle}>Language / Idioma</Text>
+          <Text style={st.sectionDesc}>Switch language for the entire app.</Text>
+          <LanguageSelector />
+        </View>
+
         {/* Quick Links */}
         <View style={st.section}>
           <Text style={st.sectionTitle}>Quick Links</Text>
@@ -324,6 +332,12 @@ export default function SettingsScreen() {
             style={st.linkRow}
           >
             <Text style={st.linkText}>🥗  Nutrition & Hydration Settings</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/daily-guides-config' as any); }}
+            style={st.linkRow}
+          >
+            <Text style={st.linkText}>📋  Daily Living Guides</Text>
           </Pressable>
           <Pressable
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/news' as any); }}

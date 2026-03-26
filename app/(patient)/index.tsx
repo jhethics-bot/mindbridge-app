@@ -57,6 +57,9 @@ const ROUTE_MAP: Record<string, string> = {
   meditation: '/(patient)/breathing',
   exercise: '/(patient)/exercise',
   trivia: '/(patient)/games',
+  driving_assessment: '/(patient)/driving',
+  daily_guides: '/(patient)/daily-guides',
+  daily_living: '/(patient)/daily-guides',
 };
 
 // ============================================
@@ -92,6 +95,9 @@ const ACTIVITY_META: Record<string, { label: string; emoji: string }> = {
   meditation:           { label: 'Meditation',        emoji: '🧘' },
   exercise:             { label: 'Wellness',          emoji: '💪' },
   trivia:               { label: 'Trivia',            emoji: '🧠' },
+  driving_assessment:   { label: 'Driving Check',     emoji: '🚗' },
+  daily_guides:         { label: 'Daily Guides',      emoji: '📋' },
+  daily_living:         { label: 'Daily Guides',      emoji: '📋' },
 };
 
 // ============================================

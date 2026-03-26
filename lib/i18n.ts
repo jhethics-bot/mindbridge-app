@@ -87,9 +87,68 @@ const ENGLISH_DEFAULTS: StringMap = {
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.done': 'Done',
+  'common.next': 'Next',
+  'common.welcome': 'Welcome',
   'common.loading': 'Loading...',
   'common.error': 'Something went wrong',
   'common.retry': 'Try Again',
+
+  // Meals & Nutrition
+  'meals.title': 'Log a Meal',
+  'meals.breakfast': 'Breakfast',
+  'meals.lunch': 'Lunch',
+  'meals.dinner': 'Dinner',
+  'meals.snack': 'Snack',
+  'meals.log_meal': 'Log Meal',
+  'meals.logged': 'Logged!',
+  'meals.tap_what_you_ate': 'Tap what you ate',
+  'meals.items_selected': 'items selected',
+
+  // Hydration
+  'hydration.title': 'Stay Hydrated',
+  'hydration.glasses_today': 'glasses',
+  'hydration.of': 'of',
+  'hydration.tap_drink': 'Tap a drink to log it',
+  'hydration.great_job': 'Great job staying hydrated!',
+  'hydration.time_for_water': 'Time for water!',
+
+  // MIND Diet
+  'mind.score': 'MIND Score',
+  'mind.brain_healthy': 'Brain-Healthy Foods',
+  'mind.limit': 'Foods to Limit',
+  'mind.leafy_greens': 'Leafy Greens',
+  'mind.berries': 'Berries',
+  'mind.nuts': 'Nuts',
+  'mind.fish': 'Fish',
+  'mind.poultry': 'Poultry',
+  'mind.whole_grains': 'Whole Grains',
+  'mind.olive_oil': 'Olive Oil',
+
+  // Pet
+  'pet.is_happy': '{{name}} is happy!',
+  'pet.is_proud': '{{name}} is so proud of you!',
+  'pet.misses_you': '{{name}} misses you!',
+  'pet.feed': 'Feed {{name}}',
+  'pet.play': 'Play with {{name}}',
+  'pet.pet': 'Pet {{name}}',
+
+  // News
+  'news.title': "Today's News",
+  'news.no_articles': 'No news right now. Check back later!',
+
+  // About
+  'about.title': 'About NeuBridge',
+  'about.version': 'Version',
+
+  // Daily Guides
+  'guides.title': 'Daily Guides',
+  'guides.step': 'Step',
+  'guides.all_done': 'All Done!',
+  'guides.next_step': 'Next Step',
+
+  // Driving
+  'driving.title': 'Driving Safety Check',
+  'driving.disclaimer': 'This is not a medical evaluation. Always consult your healthcare provider about driving safety.',
 };
 
 /**
@@ -153,9 +212,68 @@ const SPANISH_DEFAULTS: StringMap = {
   'common.save': 'Guardar',
   'common.cancel': 'Cancelar',
   'common.done': 'Listo',
+  'common.next': 'Siguiente',
+  'common.welcome': 'Bienvenido',
   'common.loading': 'Cargando...',
   'common.error': 'Algo salió mal',
   'common.retry': 'Intentar de Nuevo',
+
+  // Meals & Nutrition
+  'meals.title': 'Registrar Comida',
+  'meals.breakfast': 'Desayuno',
+  'meals.lunch': 'Almuerzo',
+  'meals.dinner': 'Cena',
+  'meals.snack': 'Merienda',
+  'meals.log_meal': 'Registrar Comida',
+  'meals.logged': '¡Registrado!',
+  'meals.tap_what_you_ate': 'Toca lo que comiste',
+  'meals.items_selected': 'seleccionados',
+
+  // Hydration
+  'hydration.title': 'Mantente Hidratado',
+  'hydration.glasses_today': 'vasos',
+  'hydration.of': 'de',
+  'hydration.tap_drink': 'Toca una bebida para registrar',
+  'hydration.great_job': '¡Muy bien manteniéndote hidratado!',
+  'hydration.time_for_water': '¡Hora de tomar agua!',
+
+  // MIND Diet
+  'mind.score': 'Puntuación MIND',
+  'mind.brain_healthy': 'Alimentos para el Cerebro',
+  'mind.limit': 'Alimentos a Limitar',
+  'mind.leafy_greens': 'Vegetales de Hoja Verde',
+  'mind.berries': 'Frutas del Bosque',
+  'mind.nuts': 'Nueces',
+  'mind.fish': 'Pescado',
+  'mind.poultry': 'Pollo',
+  'mind.whole_grains': 'Granos Integrales',
+  'mind.olive_oil': 'Aceite de Oliva',
+
+  // Pet
+  'pet.is_happy': '¡{{name}} está feliz!',
+  'pet.is_proud': '¡{{name}} está muy orgulloso de ti!',
+  'pet.misses_you': '¡{{name}} te extraña!',
+  'pet.feed': 'Alimentar a {{name}}',
+  'pet.play': 'Jugar con {{name}}',
+  'pet.pet': 'Acariciar a {{name}}',
+
+  // News
+  'news.title': 'Noticias de Hoy',
+  'news.no_articles': 'No hay noticias ahora. ¡Vuelve más tarde!',
+
+  // About
+  'about.title': 'Sobre NeuBridge',
+  'about.version': 'Versión',
+
+  // Daily Guides
+  'guides.title': 'Guías Diarias',
+  'guides.step': 'Paso',
+  'guides.all_done': '¡Todo Listo!',
+  'guides.next_step': 'Siguiente Paso',
+
+  // Driving
+  'driving.title': 'Revisión de Seguridad al Conducir',
+  'driving.disclaimer': 'Esta no es una evaluación médica. Siempre consulte a su médico sobre la seguridad al conducir.',
 };
 
 /**
