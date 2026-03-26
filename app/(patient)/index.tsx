@@ -15,7 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { MBSafeArea } from '../../components/ui/MBSafeArea';
-import { CompanionPet } from '../../components/CompanionPet';
+import { CompanionPet, getAnimationForMood, type PetAnimationState } from '../../components/CompanionPet';
 import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
 import { useTimeTheme, getPersonalizedGreeting } from '../../lib/time-theme';
@@ -53,6 +53,10 @@ const ROUTE_MAP: Record<string, string> = {
   gentle_touch: '/(patient)/breathing',
   meals: '/(patient)/meals',
   hydration: '/(patient)/hydration',
+  journal: '/(patient)/journal',
+  meditation: '/(patient)/breathing',
+  exercise: '/(patient)/exercise',
+  trivia: '/(patient)/games',
 };
 
 // ============================================
@@ -82,6 +86,12 @@ const ACTIVITY_META: Record<string, { label: string; emoji: string }> = {
   sensory_calm:         { label: 'Calm Screen',      emoji: '🌊' },
   gentle_touch:         { label: 'Gentle Touch',     emoji: '💫' },
   gentle_exercise:      { label: 'Gentle Exercise',  emoji: '🤸' },
+  meals:                { label: 'Log a Meal',       emoji: '🍽️' },
+  hydration:            { label: 'Hydration',        emoji: '💧' },
+  journal:              { label: 'Journal',           emoji: '📓' },
+  meditation:           { label: 'Meditation',        emoji: '🧘' },
+  exercise:             { label: 'Wellness',          emoji: '💪' },
+  trivia:               { label: 'Trivia',            emoji: '🧠' },
 };
 
 // ============================================
@@ -127,6 +137,7 @@ export default function PatientHome() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [displayName, setDisplayName] = useState('there');
   const [userId, setUserId] = useState<string | null>(null);
+  const [petAnimState, setPetAnimState] = useState<PetAnimationState>('idle');
 
   // ---- Companion Pet ----
   const { pet, moodState, fetchPet, refreshMood, fetchInteractionSummary } = usePetStore();
@@ -190,6 +201,13 @@ export default function PatientHome() {
   useEffect(() => {
     const moodScore = todayMood ? (MOOD_SCORE[todayMood] ?? null) : null;
     refreshMood(queue.length, moodScore);
+    // Trigger mood-responsive pet animation
+    if (moodScore !== null && pet) {
+      setPetAnimState(getAnimationForMood(moodScore));
+      // Return to idle after animation plays
+      const timer = setTimeout(() => setPetAnimState('idle'), 4000);
+      return () => clearTimeout(timer);
+    }
   }, [todayMood, queue]);
 
   // ---- Morning greeting: log "greet" interaction once per day ----
@@ -203,6 +221,9 @@ export default function PatientHome() {
           const moodScore = todayMood ? (MOOD_SCORE[todayMood] ?? undefined) : undefined;
           usePetStore.getState().logInteraction('greet', moodScore);
           await AsyncStorage.setItem('lastAppOpen', today);
+          // First visit of the day: curious tilt
+          setPetAnimState('curious_tilt');
+          setTimeout(() => setPetAnimState('idle'), 3000);
         }
       } catch {
         // Non-critical
@@ -348,18 +369,29 @@ export default function PatientHome() {
           </Text>
           <View style={styles.headerRight}>
             {pet && companionPetEnabled && userId && (
-              <CompanionPet
-                petId={pet.id}
-                petType={pet.petType}
-                petName={pet.petName}
-                colorPrimary={pet.colorPrimary}
-                moodState={moodState}
-                patientId={userId}
-                size={110}
-                onInteraction={(type) => {
-                  console.log('[Home] Pet interaction:', type);
-                }}
-              />
+              <View style={styles.petArea}>
+                <CompanionPet
+                  petId={pet.id}
+                  petType={pet.petType}
+                  petName={pet.petName}
+                  colorPrimary={pet.colorPrimary}
+                  moodState={moodState}
+                  patientId={userId}
+                  size={110}
+                  animationState={petAnimState}
+                  hydrationLow={hydrationEnabled && todayHydration.percentage < 50 && new Date().getHours() >= 14}
+                  onInteraction={(type) => {
+                    setPetAnimState('interact_respond');
+                    setTimeout(() => setPetAnimState('idle'), 600);
+                  }}
+                />
+                {/* Water bowl — fill reflects hydration progress */}
+                {hydrationEnabled && (
+                  <View style={styles.waterBowl}>
+                    <View style={[styles.waterBowlFill, { width: `${Math.min(todayHydration.percentage, 100)}%` as any }]} />
+                  </View>
+                )}
+              </View>
             )}
             {todayMood && (
               <View style={styles.moodBadge}>
@@ -489,6 +521,22 @@ const styles = StyleSheet.create({
   headerRight: {
     alignItems: 'center',
     gap: 8,
+  },
+  petArea: {
+    alignItems: 'center',
+  },
+  waterBowl: {
+    width: 40,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E5E7EB',
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+  waterBowlFill: {
+    height: '100%',
+    backgroundColor: '#4A90D9',
+    borderRadius: 6,
   },
   moodBadge: {
     width: 48,

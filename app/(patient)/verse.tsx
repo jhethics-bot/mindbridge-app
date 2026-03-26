@@ -10,9 +10,12 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { MBSafeArea } from '../../components/ui/MBSafeArea';
 import { MBButton } from '../../components/ui/MBButton';
+import { CompanionPet, type PetAnimationState } from '../../components/CompanionPet';
 import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
 import { supabase, logActivitySession, getCurrentProfile } from '../../lib/supabase';
+import { usePetStore } from '../../stores/petStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import type { DiseaseStage } from '../../types';
 
 interface DailyVerse {
@@ -39,7 +42,11 @@ export default function VerseScreen() {
   const [loading, setLoading] = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+  const petSlideAnim = useRef(new Animated.Value(0)).current;
   const patientId = useRef('');
+  const { pet, moodState } = usePetStore();
+  const companionPetEnabled = useSettingsStore(s => s.toggles?.companion_pet_enabled ?? true);
+  const [petAnimState, setPetAnimState] = useState<PetAnimationState>('idle');
 
   useEffect(() => {
     loadVerse();
@@ -95,17 +102,35 @@ export default function VerseScreen() {
     }
     setLoading(false);
 
-    // Animate in
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1, duration: 1200, easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0, duration: 1200, easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Pet delivery animation: slide in, pause, then verse appears
+    if (pet && companionPetEnabled) {
+      Animated.sequence([
+        Animated.timing(petSlideAnim, {
+          toValue: 10, duration: 600, easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          useNativeDriver: true,
+        }),
+        Animated.delay(400),
+        Animated.timing(petSlideAnim, {
+          toValue: 0, duration: 600, easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+
+    // Animate verse in (with slight delay if pet is present)
+    const verseDelay = pet && companionPetEnabled ? 800 : 0;
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1, duration: 1200, easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0, duration: 1200, easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, verseDelay);
   }
 
   const fontSize = stage === 'late' ? 28 : stage === 'middle' ? 24 : 22;
@@ -138,6 +163,22 @@ export default function VerseScreen() {
 
   return (
     <MBSafeArea showHome showSOS backgroundColor="#FDF8F0">
+      {/* Pet delivery */}
+      {pet && companionPetEnabled && patientId.current && (
+        <Animated.View style={{ transform: [{ translateX: petSlideAnim }], alignItems: 'center', marginTop: 16 }}>
+          <CompanionPet
+            petId={pet.id}
+            petType={pet.petType}
+            petName={pet.petName}
+            colorPrimary={pet.colorPrimary}
+            moodState={moodState}
+            patientId={patientId.current}
+            size={80}
+            animationState={petAnimState}
+          />
+        </Animated.View>
+      )}
+
       <Animated.View style={[st.verseContainer, {
         opacity: fadeAnim,
         transform: [{ translateY: slideAnim }],

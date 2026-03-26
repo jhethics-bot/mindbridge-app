@@ -14,6 +14,7 @@ import { COLORS } from '../../../constants/colors';
 import { A11Y } from '../../../constants/accessibility';
 import { logActivitySession, getCurrentProfile } from '../../../lib/supabase';
 import type { DiseaseStage } from '../../../types';
+import { PetCelebration } from '../../../components/PetCelebration';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -156,6 +157,7 @@ export default function SpellingGame() {
       <MBSafeArea showHome showSOS>
         <View style={st.center}>
           <Text style={{ fontSize: 80, marginBottom: 20 }}>✏️</Text>
+          <PetCelebration patientId={patientId.current} />
           <Text style={st.doneTitle}>Great Spelling!</Text>
           <Text style={st.doneBody}>You spelled {score} words. Wonderful practice!</Text>
           <MBButton label="Play Again" variant="primary" size="large"

@@ -13,6 +13,7 @@ import { COLORS } from '../../../constants/colors';
 import { A11Y } from '../../../constants/accessibility';
 import { supabase, logActivitySession, getCurrentProfile } from '../../../lib/supabase';
 import type { DiseaseStage } from '../../../types';
+import { PetCelebration } from '../../../components/PetCelebration';
 
 const EMOJIS = ['🌸', '🌻', '🦋', '🐦', '🌈', '⭐', '🎵', '🏠', '❤️', '☀️', '🍎', '🐱'];
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -158,6 +159,7 @@ export default function MemoryCards() {
       <MBSafeArea showHome showSOS>
         <View style={styles.center}>
           <Text style={styles.completeEmoji}>🌟</Text>
+          <PetCelebration patientId={patientId.current} />
           <Text style={styles.completeTitle}>All Matched!</Text>
           <Text style={styles.completeBody}>You found every pair. Wonderful!</Text>
           <MBButton

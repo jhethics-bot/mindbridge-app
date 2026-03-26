@@ -13,6 +13,7 @@ import { COLORS } from '../../../constants/colors';
 import { A11Y } from '../../../constants/accessibility';
 import { supabase, logActivitySession, getCurrentProfile, getFamilyPhotos } from '../../../lib/supabase';
 import type { DiseaseStage } from '../../../types';
+import { PetCelebration } from '../../../components/PetCelebration';
 
 const SAMPLE_NAMES = [
   { name: 'Mom', initials: 'M', color: '#E8B4B8' },
@@ -158,6 +159,7 @@ export default function FaceNameGame() {
       <MBSafeArea showHome showSOS>
         <View style={st.center}>
           <Text style={{ fontSize: 80, marginBottom: 20 }}>🌟</Text>
+          <PetCelebration patientId={patientId.current} />
           <Text style={st.doneTitle}>Well Done!</Text>
           <Text style={st.doneBody}>You practiced remembering names. That's wonderful!</Text>
           <MBButton label="Play Again" variant="primary" size="large" onPress={() => { setScore(0); setGameState('playing'); }} />

@@ -13,6 +13,7 @@ import { COLORS } from '../../../constants/colors';
 import { A11Y } from '../../../constants/accessibility';
 import { logActivitySession, getCurrentProfile } from '../../../lib/supabase';
 import type { DiseaseStage } from '../../../types';
+import { PetCelebration } from '../../../components/PetCelebration';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -191,6 +192,7 @@ export default function ColorNumber() {
       <MBSafeArea showHome showSOS>
         <View style={st.center}>
           <Text style={{ fontSize: 80, marginBottom: 20 }}>🎨</Text>
+          <PetCelebration patientId={patientId.current} />
           <Text style={st.doneTitle}>Masterpiece!</Text>
           <Text style={st.doneBody}>What beautiful colors you chose!</Text>
           <MBButton label="Paint Again" variant="primary" size="large" onPress={() => setGameState('playing')} />

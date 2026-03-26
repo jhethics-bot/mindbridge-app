@@ -13,6 +13,7 @@ import { COLORS } from '../../../constants/colors';
 import { A11Y } from '../../../constants/accessibility';
 import { supabase, logActivitySession, getCurrentProfile } from '../../../lib/supabase';
 import type { DiseaseStage } from '../../../types';
+import { PetCelebration } from '../../../components/PetCelebration';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const WORDS_POOL = ['LOVE', 'HOME', 'FAMILY', 'PEACE', 'HAPPY', 'SMILE', 'HEART', 'MUSIC', 'LIGHT', 'GRACE'];
@@ -180,6 +181,7 @@ export default function WordFind() {
       <MBSafeArea showHome showSOS>
         <View style={s.center}>
           <Text style={{ fontSize: 80, marginBottom: 20 }}>🎉</Text>
+          <PetCelebration patientId={patientId.current} />
           <Text style={s.doneTitle}>All Words Found!</Text>
           <Text style={s.doneBody}>You found every word. Wonderful job!</Text>
           <MBButton label="Play Again" variant="primary" size="large" onPress={() => setGameState('playing')} />

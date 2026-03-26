@@ -13,6 +13,7 @@ import { COLORS } from '../../../constants/colors';
 import { A11Y } from '../../../constants/accessibility';
 import { logActivitySession, getCurrentProfile } from '../../../lib/supabase';
 import type { DiseaseStage } from '../../../types';
+import { PetCelebration } from '../../../components/PetCelebration';
 
 interface SortItem { name: string; emoji: string; category: string; }
 
@@ -153,6 +154,7 @@ export default function SortingGame() {
       <MBSafeArea showHome showSOS>
         <View style={st.center}>
           <Text style={{ fontSize: 80, marginBottom: 20 }}>🎉</Text>
+          <PetCelebration patientId={patientId.current} />
           <Text style={st.doneTitle}>All Sorted!</Text>
           <Text style={st.doneBody}>You sorted everything perfectly!</Text>
           <MBButton label="Play Again" variant="primary" size="large" onPress={() => setGameState('playing')} />
