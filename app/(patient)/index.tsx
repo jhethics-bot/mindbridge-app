@@ -22,6 +22,7 @@ import { useTimeTheme, getPersonalizedGreeting } from '../../lib/time-theme';
 import { supabase } from '../../lib/supabase';
 import { usePetStore } from '../../stores/petStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useNutritionStore } from '../../stores/nutritionStore';
 
 // ============================================
 // ROUTE MAP - activity name to expo-router path
@@ -50,6 +51,8 @@ const ROUTE_MAP: Record<string, string> = {
   voice_message_listen: '/(patient)/photos',
   sensory_calm: '/(patient)/breathing',
   gentle_touch: '/(patient)/breathing',
+  meals: '/(patient)/meals',
+  hydration: '/(patient)/hydration',
 };
 
 // ============================================
@@ -128,6 +131,8 @@ export default function PatientHome() {
   // ---- Companion Pet ----
   const { pet, moodState, fetchPet, refreshMood, fetchInteractionSummary } = usePetStore();
   const companionPetEnabled = useSettingsStore(s => s.toggles?.companion_pet_enabled ?? true);
+  const hydrationEnabled = useSettingsStore(s => (s.toggles as any)?.hydration_tracking_enabled ?? true);
+  const { todayHydration, fetchTodayHydration, fetchHydrationSettings } = useNutritionStore();
 
   // Track if initial load is done to prevent re-fetching on back navigation
   const hasLoadedRef = useRef(false);
@@ -156,7 +161,7 @@ export default function PatientHome() {
     }, [])
   );
 
-  // ---- Load pet when user is authenticated ----
+  // ---- Load pet + hydration when user is authenticated ----
   useEffect(() => {
     if (!userId) return;
     (async () => {
@@ -170,9 +175,13 @@ export default function PatientHome() {
         if (rel?.id) {
           fetchPet(rel.id);
           fetchInteractionSummary();
+          if (hydrationEnabled) {
+            fetchHydrationSettings(rel.id);
+            fetchTodayHydration(userId);
+          }
         }
       } catch {
-        // No care relationship — pet feature not available
+        // No care relationship — pet/hydration features not available
       }
     })();
   }, [userId]);
@@ -362,6 +371,26 @@ export default function PatientHome() {
           </View>
         </View>
 
+        {/* Hydration mini-widget */}
+        {hydrationEnabled && (
+          <Pressable
+            onPress={() => router.push('/(patient)/hydration' as any)}
+            accessibilityRole="button"
+            accessibilityLabel={`Hydration: ${todayHydration.glassesLogged} of ${todayHydration.glassesTarget} glasses`}
+            accessibilityHint="Open hydration tracker"
+            style={({ pressed }) => [
+              styles.hydrationWidget,
+              { backgroundColor: theme.cardBackground },
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Text style={styles.hydrationEmoji}>💧</Text>
+            <Text style={[styles.hydrationCount, { color: COLORS.teal }]}>
+              {todayHydration.glassesLogged}/{todayHydration.glassesTarget}
+            </Text>
+          </Pressable>
+        )}
+
         <Text style={[styles.queueTitle, { color: theme.textColor }]}>
           Your activities today
         </Text>
@@ -477,6 +506,30 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 20,
     opacity: 0.7,
+  },
+
+  // Hydration mini-widget
+  hydrationWidget: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  hydrationEmoji: {
+    fontSize: 24,
+  },
+  hydrationCount: {
+    fontSize: 20,
+    fontWeight: '700',
   },
 
   // Activity cards

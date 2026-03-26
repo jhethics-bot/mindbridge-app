@@ -12,6 +12,7 @@ import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
 import { supabase, getCurrentProfile, getCaregiverPatients } from '../../lib/supabase';
 import { CompanionPetWidget } from '../../components/CompanionPetWidget';
+import { NutritionSummaryWidget } from '../../components/NutritionSummaryWidget';
 import { checkPetInactivityAndNotify } from '../../lib/petNotifications';
 
 interface DashboardData {
@@ -184,6 +185,9 @@ export default function CaregiverDashboard() {
             {/* Companion Pet Widget */}
             <CompanionPetWidget patientId={patientId} />
 
+            {/* Nutrition Summary Widget */}
+            <NutritionSummaryWidget patientId={patientId} />
+
             {data.recentActivities.length > 0 && (
               <View style={st.section}>
                 <Text style={st.sectionTitle}>Today's Activities</Text>
@@ -251,6 +255,16 @@ export default function CaregiverDashboard() {
           {navCard('Medications', '💊', '/(caregiver)/medications')}
           {navCard('Settings', '⚙️', '/(caregiver)/settings')}
         </View>
+
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/nutrition-dashboard' as any); }}
+          accessibilityRole="button"
+          accessibilityLabel="Nutrition & Hydration"
+          style={({ pressed }) => [st.reportBtn, pressed && { backgroundColor: COLORS.glow }]}
+        >
+          <Text style={{ fontSize: 20, marginRight: 10 }}>🥗</Text>
+          <Text style={st.reportBtnText}>Nutrition & Hydration</Text>
+        </Pressable>
 
         <Pressable
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/community' as any); }}

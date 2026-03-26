@@ -38,6 +38,7 @@ interface CompanionPetProps {
   patientId: string;
   onInteraction?: (type: string) => void;
   size?: number;
+  hydrationLow?: boolean;  // true if hydration < 50% after 2 PM
 }
 
 // ── Rounded circle helper ─────────────────────────────────
@@ -65,6 +66,7 @@ export const CompanionPet: React.FC<CompanionPetProps> = ({
   patientId,
   onInteraction,
   size = 120,
+  hydrationLow = false,
 }) => {
   const palette = PET_PALETTES[colorPrimary] ?? PET_PALETTES.golden;
 
@@ -109,6 +111,9 @@ export const CompanionPet: React.FC<CompanionPetProps> = ({
 
       <Text style={styles.petName}>{petName}</Text>
       <View style={[styles.moodDot, { backgroundColor: getMoodColor(moodState) }]} />
+      {hydrationLow && (
+        <Text style={styles.hydrationCue}>💧</Text>
+      )}
     </View>
   );
 };
@@ -247,5 +252,9 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     marginTop: 3,
+  },
+  hydrationCue: {
+    fontSize: 16,
+    marginTop: 2,
   },
 });

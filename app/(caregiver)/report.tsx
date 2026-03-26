@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { getPetReportData, type PetReportSummary } from '../../lib/petReport';
+import { getNutritionReportData, type NutritionReportData } from '../../lib/nutritionReport';
 
 const MOOD_EMOJIS: Record<string, string> = {
   happy: '😊', okay: '😐', confused: '😵', tired: '😴', sad: '😢',
@@ -33,6 +34,7 @@ export default function ReportScreen() {
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState<WeeklyReport | null>(null);
   const [petReport, setPetReport] = useState<PetReportSummary | null>(null);
+  const [nutritionReport, setNutritionReport] = useState<NutritionReportData | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => { loadReport(); }, []);
@@ -62,6 +64,12 @@ export default function ReportScreen() {
         endDate: new Date().toISOString(),
       });
       if (petData) setPetReport(petData);
+
+      // Load nutrition report
+      try {
+        const nutData = await getNutritionReportData(rel.patient_id, weekAgo, new Date().toISOString().split('T')[0]);
+        setNutritionReport(nutData);
+      } catch {} // Non-critical
     } catch (e: any) {
       setError(e.message || 'Failed to load report');
     }
@@ -197,6 +205,57 @@ export default function ReportScreen() {
             </View>
           </View>
         )}
+        {/* Nutrition & Hydration Summary */}
+        {nutritionReport && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Nutrition & Hydration</Text>
+            <View style={s.statsGrid}>
+              <View style={s.statCard}>
+                <Text style={s.statNum}>{nutritionReport.avgMindScore}</Text>
+                <Text style={s.statLabel}>MIND Score</Text>
+              </View>
+              <View style={s.statCard}>
+                <Text style={s.statNum}>{nutritionReport.hydrationAvgGlasses}</Text>
+                <Text style={s.statLabel}>Avg Glasses/Day</Text>
+              </View>
+              <View style={s.statCard}>
+                <Text style={s.statNum}>{nutritionReport.mealsLoggedPerDay}</Text>
+                <Text style={s.statLabel}>Meals/Day</Text>
+              </View>
+              <View style={s.statCard}>
+                <Text style={s.statNum}>{nutritionReport.hydrationAvgDailyOz} oz</Text>
+                <Text style={s.statLabel}>Avg Hydration</Text>
+              </View>
+            </View>
+            {nutritionReport.topFoodCategories.length > 0 && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 6 }}>Top Foods</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {nutritionReport.topFoodCategories.map((c, i) => (
+                    <View key={i} style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 4,
+                      backgroundColor: '#FFFFFF', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+                    }}>
+                      <Text>{c.emoji}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#1B2A4A' }}>{c.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+            {nutritionReport.missingMindCategories.length > 0 && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 6 }}>Missing MIND Foods</Text>
+                {nutritionReport.missingMindCategories.slice(0, 3).map((c, i) => (
+                  <Text key={i} style={{ fontSize: 13, color: '#1B2A4A', marginBottom: 2 }}>
+                    {c.emoji} {c.label} — {c.suggestion}
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Companion Pet Summary */}
         {petReport && petReport.totalInteractions > 0 && (
           <View style={s.section}>
