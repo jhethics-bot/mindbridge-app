@@ -11,6 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
 import { supabase, getCurrentProfile, getCaregiverPatients } from '../../lib/supabase';
+import { CompanionPetWidget } from '../../components/CompanionPetWidget';
+import { checkPetInactivityAndNotify } from '../../lib/petNotifications';
 
 interface DashboardData {
   patientName: string;
@@ -94,6 +96,30 @@ export default function CaregiverDashboard() {
         totalMeds: allMeds.length,
         recentObservations: obsRes.data || [],
       });
+      // Check pet inactivity notification
+      try {
+        const { data: relData } = await supabase
+          .from('care_relationships')
+          .select('id')
+          .eq('patient_id', pid)
+          .limit(1)
+          .single();
+        if (relData) {
+          const { data: petData } = await supabase
+            .from('companion_pets')
+            .select('id, pet_name')
+            .eq('care_relationship_id', relData.id)
+            .single();
+          if (petData) {
+            checkPetInactivityAndNotify({
+              petId: petData.id,
+              petName: petData.pet_name,
+              patientId: pid,
+              patientName: patient?.display_name || 'your loved one',
+            });
+          }
+        }
+      } catch {} // Non-critical
     } catch (err) {
       console.error('Dashboard error:', err);
     }
@@ -154,6 +180,9 @@ export default function CaregiverDashboard() {
               <Text style={st.infoTitle}>{data.patientName}</Text>
               <Text style={st.infoStage}>Stage: {data.patientStage}</Text>
             </View>
+
+            {/* Companion Pet Widget */}
+            <CompanionPetWidget patientId={patientId} />
 
             {data.recentActivities.length > 0 && (
               <View style={st.section}>

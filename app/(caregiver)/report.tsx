@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { getPetReportData, type PetReportSummary } from '../../lib/petReport';
 
 const MOOD_EMOJIS: Record<string, string> = {
   happy: '😊', okay: '😐', confused: '😵', tired: '😴', sad: '😢',
@@ -31,6 +32,7 @@ export default function ReportScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState<WeeklyReport | null>(null);
+  const [petReport, setPetReport] = useState<PetReportSummary | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => { loadReport(); }, []);
@@ -51,6 +53,15 @@ export default function ReportScreen() {
 
       if (rpcErr) { setError(rpcErr.message); setLoading(false); return; }
       setReport(rpt as WeeklyReport);
+
+      // Load pet interaction summary for this period
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const petData = await getPetReportData({
+        patientId: rel.patient_id,
+        startDate: weekAgo,
+        endDate: new Date().toISOString(),
+      });
+      if (petData) setPetReport(petData);
     } catch (e: any) {
       setError(e.message || 'Failed to load report');
     }
@@ -186,6 +197,29 @@ export default function ReportScreen() {
             </View>
           </View>
         )}
+        {/* Companion Pet Summary */}
+        {petReport && petReport.totalInteractions > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Companion Pet</Text>
+            <View style={s.petReportCard}>
+              <Text style={s.petReportName}>{petReport.petName} the {petReport.petType}</Text>
+              <View style={s.petReportStats}>
+                <View style={s.petReportStat}>
+                  <Text style={s.petReportNum}>{petReport.totalInteractions}</Text>
+                  <Text style={s.petReportLabel}>Total Interactions</Text>
+                </View>
+                <View style={s.petReportStat}>
+                  <Text style={s.petReportNum}>{petReport.avgDailyInteractions}</Text>
+                  <Text style={s.petReportLabel}>Avg/Day</Text>
+                </View>
+                <View style={s.petReportStat}>
+                  <Text style={s.petReportNum}>{petReport.mostCommonInteractionType}</Text>
+                  <Text style={s.petReportLabel}>Favorite</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -234,4 +268,16 @@ const s = StyleSheet.create({
     borderRadius: 12, padding: 12, gap: 8,
   },
   achieveTitle: { fontSize: 15, fontWeight: '600', color: '#1B2A4A' },
+  petReportCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16,
+  },
+  petReportName: {
+    fontSize: 18, fontWeight: '700', color: '#1B2A4A', textTransform: 'capitalize', marginBottom: 12,
+  },
+  petReportStats: { flexDirection: 'row', gap: 10 },
+  petReportStat: {
+    flex: 1, backgroundColor: '#F4F1DE', borderRadius: 12, padding: 10, alignItems: 'center',
+  },
+  petReportNum: { fontSize: 20, fontWeight: '700', color: '#2A9D8F' },
+  petReportLabel: { fontSize: 11, color: '#666', marginTop: 2, textTransform: 'capitalize' },
 });

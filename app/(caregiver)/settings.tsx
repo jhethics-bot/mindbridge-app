@@ -11,6 +11,7 @@ import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
 import { supabase, getCurrentProfile, getCaregiverPatients } from '../../lib/supabase';
 import type { DiseaseStage } from '../../types';
+import type { PetType } from '../../lib/petMoodEngine';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -21,6 +22,13 @@ export default function SettingsScreen() {
   const [pin, setPin] = useState('');
   const [currentPin, setCurrentPin] = useState('');
   const [saving, setSaving] = useState(false);
+  // Pet settings
+  const [petName, setPetName2] = useState('');
+  const [petType, setPetType] = useState<PetType | null>(null);
+  const [petColor, setPetColor] = useState('golden');
+  const [petEnabled, setPetEnabled] = useState(true);
+  const [petId, setPetId] = useState('');
+  const [careRelId, setCareRelId] = useState('');
 
   useEffect(() => { loadData(); }, []);
 
@@ -42,6 +50,30 @@ export default function SettingsScreen() {
       setPatientName(patient?.display_name || '');
       setStage(patient?.stage || 'middle');
       setFaithEnabled(patient?.faith_enabled || false);
+
+      // Load pet settings
+      const relId = patients[0].id;
+      setCareRelId(relId);
+      const { data: petRow } = await supabase
+        .from('companion_pets')
+        .select('id, pet_name, pet_type, color_primary')
+        .eq('care_relationship_id', relId)
+        .single();
+      if (petRow) {
+        setPetId(petRow.id);
+        setPetName2(petRow.pet_name || '');
+        setPetType(petRow.pet_type as PetType);
+        setPetColor(petRow.color_primary || 'golden');
+      }
+
+      // Load companion_pet_enabled toggle
+      const { data: toggleRow } = await supabase
+        .from('feature_toggles')
+        .select('is_enabled')
+        .eq('patient_id', patients[0].patient_id)
+        .eq('feature_key', 'companion_pet_enabled')
+        .single();
+      if (toggleRow) setPetEnabled(toggleRow.is_enabled);
     } catch {}
   }
 
@@ -87,6 +119,63 @@ export default function SettingsScreen() {
     }
     setSaving(false);
   }
+
+  async function savePetName(newName: string) {
+    setPetName2(newName);
+    if (!petId || !newName.trim()) return;
+    try {
+      await supabase.from('companion_pets').update({ pet_name: newName.trim() }).eq('id', petId);
+    } catch {}
+  }
+
+  async function savePetType(newType: PetType) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPetType(newType);
+    if (!petId) return;
+    try {
+      await supabase.from('companion_pets').update({ pet_type: newType }).eq('id', petId);
+    } catch {}
+  }
+
+  async function savePetColor(newColor: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPetColor(newColor);
+    if (!petId) return;
+    try {
+      await supabase.from('companion_pets').update({ color_primary: newColor }).eq('id', petId);
+    } catch {}
+  }
+
+  async function togglePetEnabled() {
+    const newVal = !petEnabled;
+    setPetEnabled(newVal);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!patientId) return;
+    try {
+      await supabase.from('feature_toggles').upsert({
+        patient_id: patientId,
+        feature_key: 'companion_pet_enabled',
+        is_enabled: newVal,
+      }, { onConflict: 'patient_id,feature_key' });
+    } catch {}
+  }
+
+  const PET_TYPES: { value: PetType; label: string; emoji: string }[] = [
+    { value: 'dog', label: 'Dog', emoji: '🐕' },
+    { value: 'cat', label: 'Cat', emoji: '🐱' },
+    { value: 'bird', label: 'Bird', emoji: '🐦' },
+    { value: 'bunny', label: 'Bunny', emoji: '🐰' },
+  ];
+
+  const PET_COLORS = [
+    { value: 'golden', label: 'Golden' },
+    { value: 'brown', label: 'Brown' },
+    { value: 'black', label: 'Black' },
+    { value: 'white', label: 'White' },
+    { value: 'gray', label: 'Gray' },
+    { value: 'orange', label: 'Orange' },
+    { value: 'teal', label: 'Teal' },
+  ];
 
   const STAGES: { value: DiseaseStage; label: string; desc: string }[] = [
     { value: 'early', label: 'Early', desc: 'Independent with minor memory issues' },
@@ -144,6 +233,62 @@ export default function SettingsScreen() {
             />
           </View>
         </View>
+
+        {/* Companion Pet */}
+        {petId ? (
+          <View style={st.section}>
+            <View style={st.toggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={st.sectionTitle}>Companion Pet</Text>
+                <Text style={st.sectionDesc}>Configure the companion pet experience.</Text>
+              </View>
+              <Switch
+                value={petEnabled}
+                onValueChange={togglePetEnabled}
+                trackColor={{ false: COLORS.lightGray, true: COLORS.teal }}
+                thumbColor={COLORS.white}
+              />
+            </View>
+
+            <Text style={[st.sectionDesc, { marginTop: 12, marginBottom: 4, fontWeight: '600', color: COLORS.navy }]}>Pet Name</Text>
+            <TextInput
+              style={st.pinInput}
+              value={petName}
+              onChangeText={setPetName2}
+              onEndEditing={() => savePetName(petName)}
+              placeholder="Pet name"
+              placeholderTextColor={COLORS.gray}
+              maxLength={20}
+            />
+
+            <Text style={[st.sectionDesc, { marginBottom: 4, fontWeight: '600', color: COLORS.navy }]}>Pet Type</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+              {PET_TYPES.map(pt => (
+                <Pressable
+                  key={pt.value}
+                  onPress={() => savePetType(pt.value)}
+                  style={[st.stageCard, { flex: 0, paddingHorizontal: 16, paddingVertical: 10 }, petType === pt.value && st.stageCardActive]}
+                >
+                  <Text style={{ fontSize: 20, marginRight: 6 }}>{pt.emoji}</Text>
+                  <Text style={[st.stageLabel, petType === pt.value && st.stageLabelActive]}>{pt.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[st.sectionDesc, { marginBottom: 4, fontWeight: '600', color: COLORS.navy }]}>Primary Color</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+              {PET_COLORS.map(pc => (
+                <Pressable
+                  key={pc.value}
+                  onPress={() => savePetColor(pc.value)}
+                  style={[st.stageCard, { flex: 0, paddingHorizontal: 14, paddingVertical: 10 }, petColor === pc.value && st.stageCardActive]}
+                >
+                  <Text style={[st.stageLabel, petColor === pc.value && st.stageLabelActive]}>{pc.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         {/* PIN Lock */}
         <View style={st.section}>

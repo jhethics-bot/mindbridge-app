@@ -122,7 +122,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       patient_id: patientId,
       event_type: 'activity_complete',
       event_data: { activity: result.activity, duration_seconds: durationSeconds, completed: result.completed },
-    }).then(() => {}).catch(() => {}); // Non-blocking
+    }).then(() => {}, () => {}); // Non-blocking
 
     set((state) => ({
       completedToday: new Set([...state.completedToday, result.activity]),

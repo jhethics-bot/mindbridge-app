@@ -140,7 +140,7 @@ export default function PhotosScreen() {
           <View style={st.modalOverlay}>
             <View style={st.modalContent}>
               {selectedPhoto?.playback_url ? (
-                <Image source={{ uri: selectedPhoto.url }}
+                <Image source={{ uri: selectedPhoto.playback_url }}
                   style={st.modalImage} resizeMode="contain" />
               ) : (
                 <View style={st.modalPlaceholder}>
