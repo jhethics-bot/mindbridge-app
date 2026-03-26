@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/colors';
 import { A11Y } from '../../constants/accessibility';
+import { APP_METADATA } from '../../constants/appMetadata';
 import { supabase, getCurrentProfile, getCaregiverPatients } from '../../lib/supabase';
 import type { DiseaseStage } from '../../types';
 import type { PetType } from '../../lib/petMoodEngine';
@@ -315,6 +316,36 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        {/* Quick Links */}
+        <View style={st.section}>
+          <Text style={st.sectionTitle}>Quick Links</Text>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/nutrition-settings' as any); }}
+            style={st.linkRow}
+          >
+            <Text style={st.linkText}>🥗  Nutrition & Hydration Settings</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/news' as any); }}
+            style={st.linkRow}
+          >
+            <Text style={st.linkText}>📰  News Reader</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/about' as any); }}
+            style={st.linkRow}
+          >
+            <Text style={st.linkText}>ℹ️  About {APP_METADATA.name}</Text>
+          </Pressable>
+        </View>
+
+        {/* App Info */}
+        <View style={st.section}>
+          <Text style={st.sectionTitle}>App Info</Text>
+          <Text style={st.sectionDesc}>{APP_METADATA.name} v{APP_METADATA.version}</Text>
+          <Text style={st.sectionDesc}>{APP_METADATA.company}</Text>
+        </View>
+
         {/* Sign out */}
         <Pressable
           onPress={async () => { await supabase.auth.signOut(); router.replace('/'); }}
@@ -358,6 +389,10 @@ const st = StyleSheet.create({
   },
   saveBtn: { backgroundColor: COLORS.teal, borderRadius: 12, padding: 14, alignItems: 'center' },
   saveBtnText: { fontSize: 16, fontWeight: '600', color: COLORS.white },
+  linkRow: {
+    backgroundColor: COLORS.white, borderRadius: 12, padding: 14, marginBottom: 8,
+  },
+  linkText: { fontSize: 15, color: COLORS.navy, fontWeight: '500' },
   logoutBtn: { alignSelf: 'center', padding: 16, marginTop: 16 },
   logoutText: { fontSize: 16, color: COLORS.coral, fontWeight: '600' },
 });

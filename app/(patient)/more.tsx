@@ -36,11 +36,25 @@ const MORE_ITEMS: MoreItem[] = [
     bgColor: '#FEF3C7',
   },
   {
+    id: 'news',
+    title: 'News',
+    emoji: '📰',
+    route: '/(patient)/news',
+    bgColor: '#E0F2FE',
+  },
+  {
     id: 'mood',
     title: 'Mood Check-In',
     emoji: '😊',
     route: '/(patient)/mood',
     bgColor: '#FCE4EC',
+  },
+  {
+    id: 'about',
+    title: 'About',
+    emoji: 'ℹ️',
+    route: '/(patient)/about',
+    bgColor: '#F0F4F8',
   },
   {
     id: 'sos',

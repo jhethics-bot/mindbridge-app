@@ -92,6 +92,8 @@ export default function PatientLayout() {
       <Tabs.Screen name="driving" options={{ href: null }} />
       <Tabs.Screen name="meals" options={{ href: null }} />
       <Tabs.Screen name="hydration" options={{ href: null }} />
+      <Tabs.Screen name="news" options={{ href: null }} />
+      <Tabs.Screen name="about" options={{ href: null }} />
     </Tabs>
   );
 }
