@@ -24,10 +24,11 @@ export default function HubHomeScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
         <Text style={st.intro}>Support for you, the caregiver.</Text>
         <HubCard title="News" emoji="📰" subtitle="Alzheimer's news, bias removed" onPress={() => router.push('/(caregiver)/hub/news' as any)} />
-        <HubCard title="Community" emoji="💬" subtitle="Connect with other caregivers" onPress={() => {}} />
-        <HubCard title="Resources" emoji="📚" subtitle="Articles and guides" onPress={() => {}} />
+        <HubCard title="Community" emoji="💬" subtitle="Connect with other caregivers" onPress={() => router.push('/(caregiver)/community' as any)} />
+        <HubCard title="Resources" emoji="📚" subtitle="Articles and guides" onPress={() => router.push('/(caregiver)/hub/resources' as any)} />
+        <HubCard title="Local Resources" emoji="📍" subtitle="Northern Virginia support services" onPress={() => router.push('/(caregiver)/hub/local' as any)} />
         <HubCard title="Self-Care" emoji="💛" subtitle="Burnout check, breathing, journal" onPress={() => router.push('/(caregiver)/hub/self-care' as any)} />
-        <HubCard title="Crisis Support" emoji="🆘" subtitle="Always here when you need help" onPress={() => {}} />
+        <HubCard title="Crisis Support" emoji="🆘" subtitle="24/7 helplines and emergency contacts" onPress={() => router.push('/(caregiver)/hub/crisis' as any)} />
       </ScrollView>
     </MBSafeArea>
   );

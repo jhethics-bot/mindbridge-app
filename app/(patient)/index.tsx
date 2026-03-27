@@ -47,8 +47,8 @@ const ROUTE_MAP: Record<string, string> = {
   gentle_exercise: '/(patient)/guided-workout',
   guided_workout: '/(patient)/guided-workout',
   chair_yoga: '/(patient)/chair-yoga',
-  singalong: '/(patient)/music',
-  voice_message_listen: '/(patient)/photos',
+  singalong: '/(patient)/singalong',
+  voice_message_listen: '/(patient)/voice-messages',
   sensory_calm: '/(patient)/calm',
   gentle_touch: '/(patient)/gentle-touch',
   meals: '/(patient)/meals',
@@ -282,15 +282,12 @@ export default function PatientHome() {
 
   const checkMoodAndLoadQueue = useCallback(async () => {
     try {
-      console.log('[home] Checking auth and mood...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('[home] No user, redirecting to login');
         router.replace('/(auth)/login' as any);
         return;
       }
 
-      console.log('[home] User:', user.id);
       setUserId(user.id);
 
       // Get profile for display name
@@ -313,8 +310,6 @@ export default function PatientHome() {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      console.log('[home] Mood check result:', moods?.length, 'records');
-
       if (moods && moods.length > 0) {
         // Mood already done today - load queue
         setTodayMood(moods[0].mood);
@@ -322,7 +317,6 @@ export default function PatientHome() {
         setState('queue');
       } else {
         // No mood today - redirect to mood check-in screen
-        console.log('[home] No mood today, redirecting to mood screen');
         router.replace('/(patient)/mood' as any);
       }
     } catch (err) {
@@ -337,7 +331,6 @@ export default function PatientHome() {
   const loadDailyQueue = async (userId: string) => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      console.log('[home] Loading queue for', today);
 
       const { data: adjustments } = await supabase
         .from('ai_adjustments')
@@ -346,8 +339,6 @@ export default function PatientHome() {
         .eq('adjustment_date', today)
         .order('created_at', { ascending: false })
         .limit(1);
-
-      console.log('[home] AI adjustments result:', adjustments?.length, 'records');
 
       if (adjustments && adjustments.length > 0 && adjustments[0].daily_queue) {
         let raw = adjustments[0].daily_queue;
@@ -358,14 +349,12 @@ export default function PatientHome() {
         }
 
         if (Array.isArray(raw) && raw.length > 0) {
-          console.log('[home] Queue loaded:', raw.length, 'items');
           setQueue(raw as QueueItem[]);
           return;
         }
       }
 
       // No AI queue for today - use fallback
-      console.log('[home] No AI queue, using fallback');
       setQueue(FALLBACK_QUEUE);
     } catch (err) {
       console.error('[home] Queue load error:', err);
@@ -378,7 +367,6 @@ export default function PatientHome() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const route = ROUTE_MAP[item.activity];
     if (route) {
-      console.log('[home] Navigating to:', route);
       router.push(route as any);
     } else {
       Alert.alert('Coming Soon', 'This activity will be available in a future update.');

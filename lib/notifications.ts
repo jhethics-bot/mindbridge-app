@@ -24,7 +24,7 @@ export async function registerForPushNotifications(userId: string): Promise<stri
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Push notification permission not granted');
+      if (__DEV__) console.log('Push notification permission not granted');
       return null;
     }
 
@@ -65,7 +65,7 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 
     return token;
   } catch (error) {
-    console.log('Error getting push token:', error);
+    if (__DEV__) console.log('Error getting push token:', error);
     return null;
   }
 }
@@ -103,7 +103,7 @@ export function addNotificationListeners(
 
   import('expo-notifications').then((Notifications) => {
     receivedSub = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('Notification received:', notification.request.content.title);
+      if (__DEV__) console.log('Notification received:', notification.request.content.title);
     });
 
     responseSub = Notifications.addNotificationResponseReceivedListener((response) => {

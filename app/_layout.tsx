@@ -9,6 +9,8 @@ import {
   addNotificationListeners,
   setNotificationHandler,
 } from "../lib/notifications";
+import ErrorBoundary from "../components/ErrorBoundary";
+import { OfflineIndicator } from "../components/OfflineIndicator";
 
 export default function RootLayout() {
   const router = useRouter();
@@ -49,7 +51,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <ErrorBoundary>
+          <OfflineIndicator />
+          <Stack screenOptions={{ headerShown: false }} />
+        </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

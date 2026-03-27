@@ -33,7 +33,7 @@ export default function MusicScreen() {
       const { data } = await supabase.from('family_media').select('*')
         .eq('patient_id', user.id).eq('media_type', 'music').order('sort_order');
       if (data && data.length > 0) { setSongs(data); setCurrentSong(data[0]); }
-    } catch (e) { console.log('Error loading songs:', e); }
+    } catch { /* song loading is non-critical */ }
   };
   const theme = THEMES[currentSong?.animation_theme || 'peaceful'];
   const textColor = currentSong?.animation_theme === 'joyful' ? '#1B2A4A' : '#F4F1DE';

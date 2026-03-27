@@ -102,6 +102,8 @@ export default function PatientLayout() {
       <Tabs.Screen name="guided-workout" options={{ href: null }} />
       <Tabs.Screen name="calm" options={{ href: null }} />
       <Tabs.Screen name="gentle-touch" options={{ href: null }} />
+      <Tabs.Screen name="singalong" options={{ href: null }} />
+      <Tabs.Screen name="voice-messages" options={{ href: null }} />
     </Tabs>
   );
 }

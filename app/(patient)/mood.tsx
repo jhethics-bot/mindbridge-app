@@ -47,7 +47,6 @@ export default function MoodCheckIn() {
           .gte('created_at', `${today}T00:00:00`)
           .limit(1);
         if (data && data.length > 0) {
-          console.log('[mood.tsx] Mood already exists for today, redirecting to home');
           router.replace('/(patient)' as any);
         }
       } catch { /* ignore */ }
@@ -66,16 +65,12 @@ export default function MoodCheckIn() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          console.log('[mood.tsx] Inserting mood:', mood, 'for patient:', user.id);
-
           const { error: insertError } = await supabase
             .from('mood_checkins')
             .insert({ patient_id: user.id, mood });
 
           if (insertError) {
             console.error('[mood.tsx] Insert error:', insertError);
-          } else {
-            console.log('[mood.tsx] Mood inserted successfully');
           }
 
           // Try AI queue generation (non-blocking, best-effort)
@@ -99,7 +94,6 @@ export default function MoodCheckIn() {
 
       // Navigate back to home after brief "thank you" display
       setTimeout(() => {
-        console.log('[mood.tsx] Navigating to /(patient)');
         router.replace('/(patient)' as any);
       }, 1500);
     }, 500);
