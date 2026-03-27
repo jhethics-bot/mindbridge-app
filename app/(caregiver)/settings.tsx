@@ -346,6 +346,12 @@ export default function SettingsScreen() {
             <Text style={st.linkText}>📰  News Reader</Text>
           </Pressable>
           <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/zarit' as any); }}
+            style={st.linkRow}
+          >
+            <Text style={st.linkText}>📋  Caregiver Wellness Check (Zarit)</Text>
+          </Pressable>
+          <Pressable
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/about' as any); }}
             style={st.linkRow}
           >
