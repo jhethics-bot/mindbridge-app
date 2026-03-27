@@ -44,13 +44,13 @@ const ROUTE_MAP: Record<string, string> = {
   scripture_read: '/(patient)/verse',
   scripture_animated: '/(patient)/verse',
   devotional: '/(patient)/verse',
-  gentle_exercise: '/(patient)/breathing',
-  guided_workout: '/(patient)/breathing',
-  chair_yoga: '/(patient)/breathing',
+  gentle_exercise: '/(patient)/guided-workout',
+  guided_workout: '/(patient)/guided-workout',
+  chair_yoga: '/(patient)/chair-yoga',
   singalong: '/(patient)/music',
   voice_message_listen: '/(patient)/photos',
-  sensory_calm: '/(patient)/breathing',
-  gentle_touch: '/(patient)/breathing',
+  sensory_calm: '/(patient)/calm',
+  gentle_touch: '/(patient)/gentle-touch',
   meals: '/(patient)/meals',
   hydration: '/(patient)/hydration',
   journal: '/(patient)/journal',
@@ -144,6 +144,8 @@ export default function PatientHome() {
   const [displayName, setDisplayName] = useState('there');
   const [userId, setUserId] = useState<string | null>(null);
   const [petAnimState, setPetAnimState] = useState<PetAnimationState>('idle');
+  const [streak, setStreak] = useState(0);
+  const [encouragement, setEncouragement] = useState('');
 
   // ---- Companion Pet ----
   const { pet, moodState, fetchPet, refreshMood, fetchInteractionSummary } = usePetStore();
@@ -200,6 +202,47 @@ export default function PatientHome() {
       } catch {
         // No care relationship — pet/hydration features not available
       }
+    })();
+
+    // Load streak + encouragement message
+    (async () => {
+      try {
+        // Streak: count consecutive days with at least 1 activity
+        const { data: sessions } = await supabase
+          .from('activity_sessions')
+          .select('created_at')
+          .eq('patient_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(60);
+        if (sessions && sessions.length > 0) {
+          const daySet = new Set(sessions.map((s: any) => s.created_at.split('T')[0]));
+          const days = Array.from(daySet).sort().reverse();
+          let s = 0;
+          const today = new Date().toISOString().split('T')[0];
+          for (let i = 0; i < days.length; i++) {
+            const expected = new Date();
+            expected.setDate(expected.getDate() - i);
+            const expectedStr = expected.toISOString().split('T')[0];
+            if (days.includes(expectedStr)) s++;
+            else break;
+          }
+          setStreak(s);
+        }
+
+        // Encouragement message
+        const { data: msgs } = await supabase
+          .from('encouragement_messages')
+          .select('message')
+          .limit(20);
+        if (msgs && msgs.length > 0) {
+          const idx = Math.floor(Math.random() * msgs.length);
+          let msg = msgs[idx].message as string;
+          // Substitute placeholders
+          if (pet) msg = msg.replace(/\[PET_NAME\]/g, pet.petName);
+          msg = msg.replace(/\[PATIENT_NAME\]/g, displayName);
+          setEncouragement(msg);
+        }
+      } catch {}
     })();
   }, [userId]);
 
@@ -429,6 +472,25 @@ export default function PatientHome() {
           </Pressable>
         )}
 
+        {/* Streak indicator */}
+        {streak >= 3 && (
+          <Pressable
+            onPress={() => router.push('/(patient)/achievements' as any)}
+            accessibilityRole="button"
+            accessibilityLabel={`${streak} day streak. Tap to see achievements.`}
+            style={styles.streakBadge}
+          >
+            <Text style={styles.streakText}>🔥 {streak}-day streak!</Text>
+          </Pressable>
+        )}
+
+        {/* Encouragement message */}
+        {encouragement ? (
+          <Text style={[styles.encouragement, { color: theme.secondaryText }]}>
+            {encouragement}
+          </Text>
+        ) : null}
+
         <Text style={[styles.queueTitle, { color: theme.textColor }]}>
           Your activities today
         </Text>
@@ -512,6 +574,25 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 8,
     paddingBottom: 32,
+  },
+  streakBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  streakText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  encouragement: {
+    fontSize: 15,
+    fontStyle: 'italic',
+    marginBottom: 12,
+    lineHeight: 22,
   },
   queueHeader: {
     flexDirection: 'row',

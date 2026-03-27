@@ -351,6 +351,12 @@ export default function SettingsScreen() {
           >
             <Text style={st.linkText}>ℹ️  About {APP_METADATA.name}</Text>
           </Pressable>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/feedback' as any); }}
+            style={st.linkRow}
+          >
+            <Text style={st.linkText}>💜  Share Feedback</Text>
+          </Pressable>
         </View>
 
         {/* App Info */}

@@ -98,6 +98,10 @@ export default function PatientLayout() {
       <Tabs.Screen name="driving-assessment" options={{ href: null }} />
       <Tabs.Screen name="privacy" options={{ href: null }} />
       <Tabs.Screen name="terms" options={{ href: null }} />
+      <Tabs.Screen name="chair-yoga" options={{ href: null }} />
+      <Tabs.Screen name="guided-workout" options={{ href: null }} />
+      <Tabs.Screen name="calm" options={{ href: null }} />
+      <Tabs.Screen name="gentle-touch" options={{ href: null }} />
     </Tabs>
   );
 }
