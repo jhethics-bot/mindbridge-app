@@ -23,6 +23,7 @@ import { supabase } from '../../lib/supabase';
 import { usePetStore } from '../../stores/petStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useNutritionStore } from '../../stores/nutritionStore';
+import { useMedicationAlertStore } from '../../stores/medicationAlertStore';
 
 // ============================================
 // ROUTE MAP - activity name to expo-router path
@@ -152,6 +153,7 @@ export default function PatientHome() {
   const companionPetEnabled = useSettingsStore(s => s.toggles?.companion_pet_enabled ?? true);
   const hydrationEnabled = useSettingsStore(s => (s.toggles as any)?.hydration_tracking_enabled ?? true);
   const { todayHydration, fetchTodayHydration, fetchHydrationSettings } = useNutritionStore();
+  const { pendingCount, todaysConfirmations, fetchTodaysConfirmations, confirmMedication } = useMedicationAlertStore();
 
   // Track if initial load is done to prevent re-fetching on back navigation
   const hasLoadedRef = useRef(false);
@@ -198,6 +200,7 @@ export default function PatientHome() {
             fetchHydrationSettings(rel.id);
             fetchTodayHydration(userId);
           }
+          fetchTodaysConfirmations(userId);
         }
       } catch {
         // No care relationship — pet/hydration features not available
@@ -460,6 +463,55 @@ export default function PatientHome() {
           </Pressable>
         )}
 
+        {/* Medication alert banner */}
+        {pendingCount > 0 && (() => {
+          const pending = todaysConfirmations.filter(c => c.status === 'pending');
+          const firstPending = pending[0];
+          const label = pendingCount === 1
+            ? `${firstPending?.medication_name ?? 'Medication'} - ${firstPending?.scheduled_time ?? ''}`
+            : `${pendingCount} medications pending`;
+          return (
+            <View style={styles.medAlertBanner}>
+              <View style={styles.medAlertTextArea}>
+                <Text style={styles.medAlertEmoji}>💊</Text>
+                <Text style={styles.medAlertLabel}>{label}</Text>
+              </View>
+              {pendingCount === 1 && firstPending ? (
+                <Pressable
+                  onPress={async () => {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    await confirmMedication(firstPending.id);
+                    if (userId) fetchTodaysConfirmations(userId);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="I took my medication"
+                  style={({ pressed }) => [styles.medAlertBtn, pressed && { opacity: 0.85 }]}
+                >
+                  <Text style={styles.medAlertBtnText}>I Took It</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.medAlertBtnRow}>
+                  {pending.slice(0, 3).map(med => (
+                    <Pressable
+                      key={med.id}
+                      onPress={async () => {
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        await confirmMedication(med.id);
+                        if (userId) fetchTodaysConfirmations(userId);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Confirm ${med.medication_name}`}
+                      style={({ pressed }) => [styles.medAlertBtnSmall, pressed && { opacity: 0.85 }]}
+                    >
+                      <Text style={styles.medAlertBtnSmallText}>{med.medication_name ?? 'Med'}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })()}
+
         {/* Streak indicator */}
         {streak >= 3 && (
           <Pressable
@@ -653,6 +705,65 @@ const styles = StyleSheet.create({
   hydrationCount: {
     fontSize: 20,
     fontWeight: '700',
+  },
+
+  // Medication alert banner
+  medAlertBanner: {
+    backgroundColor: '#D4A843',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  medAlertTextArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  medAlertEmoji: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  medAlertLabel: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.white,
+    flex: 1,
+  },
+  medAlertBtn: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 64,
+  },
+  medAlertBtnText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#D4A843',
+  },
+  medAlertBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  medAlertBtnSmall: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 64,
+  },
+  medAlertBtnSmallText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#D4A843',
   },
 
   // Activity cards

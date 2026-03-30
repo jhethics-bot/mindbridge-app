@@ -14,6 +14,7 @@ import { supabase, getCurrentProfile, getCaregiverPatients } from '../../lib/sup
 import { CompanionPetWidget } from '../../components/CompanionPetWidget';
 import { NutritionSummaryWidget } from '../../components/NutritionSummaryWidget';
 import { checkPetInactivityAndNotify } from '../../lib/petNotifications';
+import { useMedicationAlertStore } from '../../stores/medicationAlertStore';
 
 interface DashboardData {
   patientName: string;
@@ -39,6 +40,9 @@ export default function CaregiverDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
   const [patientId, setPatientId] = useState('');
+  const { todaysConfirmations, pendingCount, fetchTodaysConfirmations } = useMedicationAlertStore();
+  const [weekMedCompliance, setWeekMedCompliance] = useState<number | null>(null);
+  const [lastMissedMed, setLastMissedMed] = useState<{ date: string; name: string } | null>(null);
 
   useEffect(() => { loadDashboard(); }, []);
 
@@ -117,6 +121,32 @@ export default function CaregiverDashboard() {
               petName: petData.pet_name,
               patientId: pid,
               patientName: patient?.display_name || 'your loved one',
+            });
+          }
+        }
+      } catch {} // Non-critical
+
+      // Medication compliance data
+      try {
+        await fetchTodaysConfirmations(pid);
+        const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+        const { data: weekMedData } = await supabase
+          .from('medication_confirmations')
+          .select('status, created_at, medication_schedules(medication_name)')
+          .eq('patient_id', pid)
+          .gte('created_at', weekAgo)
+          .order('created_at', { ascending: false });
+
+        if (weekMedData && weekMedData.length > 0) {
+          const total = weekMedData.length;
+          const confirmed = weekMedData.filter((c: any) => c.status === 'confirmed').length;
+          setWeekMedCompliance(total > 0 ? Math.round((confirmed / total) * 100) : null);
+
+          const missed = weekMedData.find((c: any) => c.status === 'missed');
+          if (missed) {
+            setLastMissedMed({
+              date: new Date(missed.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+              name: (missed as any).medication_schedules?.medication_name ?? 'Unknown',
             });
           }
         }
@@ -224,6 +254,34 @@ export default function CaregiverDashboard() {
                 <Text style={st.medCount}>{data.activeMeds} of {data.totalMeds}</Text>
                 <Text style={st.medLabel}>active medications</Text>
               </View>
+            </View>
+
+            {/* Medication Compliance Widget */}
+            <View style={st.section}>
+              <Text style={st.sectionTitle}>Medication Compliance</Text>
+              <View style={st.medComplianceRow}>
+                <View style={st.medComplianceCard}>
+                  <Text style={st.medComplianceLabel}>Today</Text>
+                  <Text style={st.medComplianceValue}>
+                    {todaysConfirmations.filter(c => c.status === 'confirmed').length} of {todaysConfirmations.length}
+                  </Text>
+                  <Text style={st.medComplianceSub}>confirmed</Text>
+                </View>
+                <View style={st.medComplianceCard}>
+                  <Text style={st.medComplianceLabel}>7-Day</Text>
+                  <Text style={st.medComplianceValue}>
+                    {weekMedCompliance !== null ? `${weekMedCompliance}%` : '--'}
+                  </Text>
+                  <Text style={st.medComplianceSub}>compliance</Text>
+                </View>
+              </View>
+              {lastMissedMed && (
+                <View style={st.missedMedRow}>
+                  <Text style={st.missedMedText}>
+                    Last missed: {lastMissedMed.date} - {lastMissedMed.name}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {data.recentObservations.length > 0 && (
@@ -347,6 +405,18 @@ const st = StyleSheet.create({
   },
   medCount: { fontSize: 28, fontWeight: '700', color: COLORS.teal },
   medLabel: { fontSize: 14, color: COLORS.gray, marginTop: 4 },
+  medComplianceRow: { flexDirection: 'row', gap: 10 },
+  medComplianceCard: {
+    flex: 1, backgroundColor: COLORS.white, borderRadius: 12, padding: 14, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  },
+  medComplianceLabel: { fontSize: 11, fontWeight: '600', color: COLORS.gray, textTransform: 'uppercase', marginBottom: 4 },
+  medComplianceValue: { fontSize: 24, fontWeight: '700', color: COLORS.teal },
+  medComplianceSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  missedMedRow: {
+    backgroundColor: '#FFF3F0', borderRadius: 10, padding: 10, marginTop: 8, borderWidth: 1, borderColor: COLORS.coral,
+  },
+  missedMedText: { fontSize: 14, color: COLORS.coral, fontWeight: '600' },
   obsRow: {
     backgroundColor: COLORS.white, borderRadius: 12, padding: 12, marginBottom: 8,
   },
