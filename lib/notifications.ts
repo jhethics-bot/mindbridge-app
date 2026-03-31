@@ -184,6 +184,64 @@ export async function scheduleActivityNudge(params: {
 }
 
 /**
+ * Schedule a daily check-in reminder at 8 PM.
+ */
+export async function scheduleDailyCheckIn(patientName: string): Promise<string> {
+  if (isExpoGo) return '';
+  try {
+    const Notifications = await import('expo-notifications');
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Daily Check-In',
+        body: `How is ${patientName} doing today? Log a mood check-in.`,
+        data: { type: 'daily_checkin', patientName },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: 20,
+        minute: 0,
+      },
+      identifier: 'daily-checkin',
+    });
+    return id;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Schedule a hydration reminder at a specified time.
+ */
+export async function scheduleHydrationReminder(patientName: string, targetTime: string): Promise<string> {
+  if (isExpoGo) return '';
+  try {
+    const Notifications = await import('expo-notifications');
+    // targetTime is "HH:MM" 24-hour format
+    const [hourStr, minuteStr] = targetTime.split(':');
+    const hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr ?? '0', 10);
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Hydration Reminder',
+        body: `Time for ${patientName} to drink some water. Staying hydrated supports brain health!`,
+        data: { type: 'hydration', patientName },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: isNaN(hour) ? 10 : hour,
+        minute: isNaN(minute) ? 0 : minute,
+      },
+      identifier: `hydration-${targetTime}`,
+    });
+    return id;
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Cancel a specific scheduled notification by identifier.
  */
 export async function cancelNotification(identifier: string): Promise<void> {

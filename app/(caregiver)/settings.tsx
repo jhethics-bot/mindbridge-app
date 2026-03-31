@@ -31,6 +31,11 @@ export default function SettingsScreen() {
   const [petEnabled, setPetEnabled] = useState(true);
   const [petId, setPetId] = useState('');
   const [careRelId, setCareRelId] = useState('');
+  // Notification settings
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [quietHoursStart, setQuietHoursStart] = useState('22:00');
+  const [quietHoursEnd, setQuietHoursEnd] = useState('07:00');
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -76,7 +81,37 @@ export default function SettingsScreen() {
         .eq('feature_key', 'companion_pet_enabled')
         .single();
       if (toggleRow) setPetEnabled(toggleRow.is_enabled);
+
+      // Load notification prefs from caregiver profile
+      const { data: notifProfile } = await supabase
+        .from('profiles')
+        .select('notifications_enabled, quiet_hours_start, quiet_hours_end')
+        .eq('id', profile.id)
+        .single();
+      if (notifProfile) {
+        setNotificationsEnabled(notifProfile.notifications_enabled ?? true);
+        setQuietHoursStart(notifProfile.quiet_hours_start?.slice(0, 5) ?? '22:00');
+        setQuietHoursEnd(notifProfile.quiet_hours_end?.slice(0, 5) ?? '07:00');
+      }
     } catch {}
+  }
+
+  async function saveNotificationSettings() {
+    setSavingNotifications(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('profiles').update({
+        notifications_enabled: notificationsEnabled,
+        quiet_hours_start: quietHoursStart,
+        quiet_hours_end: quietHoursEnd,
+      }).eq('id', user.id);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Saved', 'Notification settings updated.');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not save notification settings');
+    }
+    setSavingNotifications(false);
   }
 
   async function saveStage(newStage: DiseaseStage) {
@@ -291,6 +326,57 @@ export default function SettingsScreen() {
             </View>
           </View>
         ) : null}
+
+        {/* Notifications */}
+        <View style={st.section}>
+          <Text style={st.sectionTitle}>Notifications</Text>
+          <View style={st.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={st.sectionDesc}>Enable push notifications for reminders and alerts.</Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={(v) => { setNotificationsEnabled(v); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+              trackColor={{ false: COLORS.lightGray, true: COLORS.teal }}
+              thumbColor={COLORS.white}
+            />
+          </View>
+          {notificationsEnabled && (
+            <>
+              <Text style={[st.sectionDesc, { marginTop: 12, marginBottom: 4, fontWeight: '600', color: COLORS.navy }]}>
+                Quiet Hours Start (HH:MM)
+              </Text>
+              <TextInput
+                style={st.pinInput}
+                value={quietHoursStart}
+                onChangeText={setQuietHoursStart}
+                placeholder="22:00"
+                placeholderTextColor={COLORS.gray}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+              />
+              <Text style={[st.sectionDesc, { marginBottom: 4, fontWeight: '600', color: COLORS.navy }]}>
+                Quiet Hours End (HH:MM)
+              </Text>
+              <TextInput
+                style={st.pinInput}
+                value={quietHoursEnd}
+                onChangeText={setQuietHoursEnd}
+                placeholder="07:00"
+                placeholderTextColor={COLORS.gray}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+              />
+            </>
+          )}
+          <Pressable
+            onPress={saveNotificationSettings}
+            disabled={savingNotifications}
+            style={[st.saveBtn, savingNotifications && { opacity: 0.5 }]}
+          >
+            <Text style={st.saveBtnText}>{savingNotifications ? 'Saving...' : 'Save Notification Settings'}</Text>
+          </Pressable>
+        </View>
 
         {/* PIN Lock */}
         <View style={st.section}>

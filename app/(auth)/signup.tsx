@@ -17,6 +17,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState<UserRole>('patient');
+  const [referralCode, setReferralCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -52,6 +53,28 @@ export default function SignupScreen() {
           onboarding_complete: false,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         });
+      }
+
+      // Redeem referral code if provided
+      if (referralCode.trim() && data.user) {
+        try {
+          const code = referralCode.trim().toUpperCase();
+          const { data: codeRow } = await supabase
+            .from('referral_codes')
+            .select('id, user_id, uses_count, max_uses, is_active')
+            .eq('code', code)
+            .eq('is_active', true)
+            .single();
+          if (codeRow && codeRow.user_id !== data.user.id && codeRow.uses_count < codeRow.max_uses) {
+            await supabase.from('referral_redemptions').insert({
+              referral_code_id: codeRow.id,
+              referrer_id: codeRow.user_id,
+              referred_id: data.user.id,
+              reward_type: 'free_month',
+            });
+            await supabase.from('referral_codes').update({ uses_count: codeRow.uses_count + 1 }).eq('id', codeRow.id);
+          }
+        } catch {}
       }
 
       Alert.alert('Account Created', 'You can now sign in.', [
@@ -92,6 +115,18 @@ export default function SignupScreen() {
           value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
         <TextInput style={st.input} placeholder="Password (6+ characters)" placeholderTextColor={COLORS.gray}
           value={password} onChangeText={setPassword} secureTextEntry />
+
+        {role === 'caregiver' && (
+          <TextInput
+            style={st.input}
+            placeholder="Referral code (optional)"
+            placeholderTextColor={COLORS.gray}
+            value={referralCode}
+            onChangeText={setReferralCode}
+            autoCapitalize="characters"
+            maxLength={10}
+          />
+        )}
 
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.teal} style={{ marginTop: 20 }} />
