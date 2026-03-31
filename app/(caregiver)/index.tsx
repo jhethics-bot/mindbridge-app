@@ -15,6 +15,7 @@ import { CompanionPetWidget } from '../../components/CompanionPetWidget';
 import { NutritionSummaryWidget } from '../../components/NutritionSummaryWidget';
 import { checkPetInactivityAndNotify } from '../../lib/petNotifications';
 import { useMedicationAlertStore } from '../../stores/medicationAlertStore';
+import { useCareAlertStore } from '../../stores/careAlertStore';
 
 interface DashboardData {
   patientName: string;
@@ -41,8 +42,11 @@ export default function CaregiverDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [patientId, setPatientId] = useState('');
   const { todaysConfirmations, pendingCount, fetchTodaysConfirmations } = useMedicationAlertStore();
+  const { alerts, unreadCount, fetchAlerts, markAsRead, dismissAlert, dismissAll } = useCareAlertStore();
+  const [alertsExpanded, setAlertsExpanded] = useState(false);
   const [weekMedCompliance, setWeekMedCompliance] = useState<number | null>(null);
   const [lastMissedMed, setLastMissedMed] = useState<{ date: string; name: string } | null>(null);
+  const [caregiverId, setCaregiverId] = useState('');
 
   useEffect(() => { loadDashboard(); }, []);
 
@@ -50,6 +54,9 @@ export default function CaregiverDashboard() {
     try {
       const profile = await getCurrentProfile();
       if (!profile) { router.replace('/'); return; }
+
+      setCaregiverId(profile.id);
+      await fetchAlerts(profile.id);
 
       const patients = await getCaregiverPatients(profile.id);
       if (!patients || patients.length === 0) {
@@ -183,6 +190,69 @@ export default function CaregiverDashboard() {
   return (
     <SafeAreaView style={st.safeArea}>
       <ScrollView contentContainerStyle={st.scroll}>
+        {/* Alert Banner */}
+        {alerts.length > 0 && (
+          <View style={[
+            st.alertBanner,
+            alerts.some(a => a.alert_type === 'hydration_critical' || a.alert_type === 'medication_missed')
+              ? st.alertBannerCritical
+              : st.alertBannerWarning,
+          ]}>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setAlertsExpanded(prev => !prev);
+                if (!alertsExpanded) {
+                  alerts.filter(a => !a.is_read).forEach(a => markAsRead(a.id));
+                }
+              }}
+              style={st.alertBannerHeader}
+              accessibilityRole="button"
+              accessibilityLabel={`${unreadCount > 0 ? unreadCount + ' alerts need attention' : 'View alerts'}`}
+            >
+              <Text style={st.alertBannerIcon}>
+                {alerts.some(a => a.alert_type === 'hydration_critical' || a.alert_type === 'medication_missed') ? '🚨' : '⚠️'}
+              </Text>
+              <Text style={st.alertBannerText}>
+                {unreadCount > 0 ? `${unreadCount} alert${unreadCount > 1 ? 's' : ''} need attention` : `${alerts.length} active alert${alerts.length > 1 ? 's' : ''}`}
+              </Text>
+              <Text style={st.alertBannerChevron}>{alertsExpanded ? '▲' : '▼'}</Text>
+            </Pressable>
+
+            {alertsExpanded && (
+              <View style={st.alertList}>
+                {alerts.map(alert => (
+                  <View key={alert.id} style={st.alertItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={st.alertItemTitle}>{alert.title}</Text>
+                      <Text style={st.alertItemMsg}>{alert.message}</Text>
+                      <Text style={st.alertItemTime}>
+                        {new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => dismissAlert(alert.id)}
+                      style={st.alertDismissBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel="Dismiss alert"
+                    >
+                      <Text style={st.alertDismissText}>Dismiss</Text>
+                    </Pressable>
+                  </View>
+                ))}
+                <Pressable
+                  onPress={dismissAll}
+                  style={st.alertDismissAllBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Dismiss all alerts"
+                >
+                  <Text style={st.alertDismissAllText}>Dismiss All</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={st.header}>
           <Text style={st.title}>NeuBridge</Text>
           <Text style={st.subtitle}>Caregiver Dashboard</Text>
@@ -300,6 +370,40 @@ export default function CaregiverDashboard() {
                 ))}
               </View>
             )}
+
+            {/* This Week Summary Widget */}
+            <View style={st.section}>
+              <View style={st.thisWeekHeader}>
+                <Text style={st.sectionTitle}>This Week</Text>
+                <Pressable
+                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/weekly-reports' as any); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="View all weekly reports"
+                >
+                  <Text style={st.thisWeekLink}>View Reports →</Text>
+                </Pressable>
+              </View>
+              <View style={st.thisWeekGrid}>
+                <View style={st.thisWeekCard}>
+                  <Text style={st.thisWeekValue}>{data.activitiesToday}</Text>
+                  <Text style={st.thisWeekLabel}>Sessions{'\n'}Today</Text>
+                </View>
+                <View style={st.thisWeekCard}>
+                  <Text style={st.thisWeekValue}>{data.moodWeek.length}</Text>
+                  <Text style={st.thisWeekLabel}>Mood{'\n'}Entries</Text>
+                </View>
+                <View style={st.thisWeekCard}>
+                  <Text style={st.thisWeekValue}>
+                    {weekMedCompliance !== null ? `${weekMedCompliance}%` : '--'}
+                  </Text>
+                  <Text style={st.thisWeekLabel}>Med{'\n'}Compliance</Text>
+                </View>
+                <View style={st.thisWeekCard}>
+                  <Text style={st.thisWeekValue}>{data.sosThisWeek}</Text>
+                  <Text style={st.thisWeekLabel}>SOS{'\n'}Events</Text>
+                </View>
+              </View>
+            </View>
           </>
         ) : (
           <View style={st.emptyState}>
@@ -352,6 +456,16 @@ export default function CaregiverDashboard() {
         >
           <Text style={{ fontSize: 20, marginRight: 10 }}>📊</Text>
           <Text style={st.reportBtnText}>Weekly Report</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(caregiver)/weekly-reports' as any); }}
+          accessibilityRole="button"
+          accessibilityLabel="Weekly Reports"
+          style={({ pressed }) => [st.reportBtn, pressed && { backgroundColor: COLORS.glow }]}
+        >
+          <Text style={{ fontSize: 20, marginRight: 10 }}>🗓️</Text>
+          <Text style={st.reportBtnText}>Weekly Reports</Text>
         </Pressable>
 
         <Pressable
@@ -440,4 +554,44 @@ const st = StyleSheet.create({
   reportBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.navy },
   logoutBtn: { alignSelf: 'center', padding: 16 },
   logoutText: { fontSize: 16, color: COLORS.coral, fontWeight: '600' },
+  // Alert Banner
+  alertBanner: {
+    borderRadius: 14, marginBottom: 16, overflow: 'hidden',
+    borderWidth: 1,
+  },
+  alertBannerCritical: { backgroundColor: '#FEE2E2', borderColor: '#DC2626' },
+  alertBannerWarning: { backgroundColor: '#FEF3C7', borderColor: '#D97706' },
+  alertBannerHeader: {
+    flexDirection: 'row', alignItems: 'center', padding: 14,
+  },
+  alertBannerIcon: { fontSize: 20, marginRight: 8 },
+  alertBannerText: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.navy },
+  alertBannerChevron: { fontSize: 12, color: COLORS.gray },
+  alertList: { borderTopWidth: 1, borderTopColor: '#E5E7EB' },
+  alertItem: {
+    flexDirection: 'row', alignItems: 'flex-start', padding: 12,
+    borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+  },
+  alertItemTitle: { fontSize: 14, fontWeight: '700', color: COLORS.navy, marginBottom: 2 },
+  alertItemMsg: { fontSize: 13, color: COLORS.gray, lineHeight: 18 },
+  alertItemTime: { fontSize: 11, color: COLORS.gray, marginTop: 4 },
+  alertDismissBtn: {
+    backgroundColor: '#DC262620', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    marginLeft: 8, alignSelf: 'flex-start',
+  },
+  alertDismissText: { fontSize: 12, fontWeight: '600', color: '#DC2626' },
+  alertDismissAllBtn: {
+    alignItems: 'center', padding: 12,
+  },
+  alertDismissAllText: { fontSize: 13, fontWeight: '700', color: COLORS.gray },
+  // This Week Widget
+  thisWeekHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  thisWeekLink: { fontSize: 14, fontWeight: '600', color: COLORS.teal },
+  thisWeekGrid: { flexDirection: 'row', gap: 8 },
+  thisWeekCard: {
+    flex: 1, backgroundColor: COLORS.white, borderRadius: 12, padding: 12, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
+  },
+  thisWeekValue: { fontSize: 22, fontWeight: '700', color: COLORS.teal },
+  thisWeekLabel: { fontSize: 11, color: COLORS.gray, marginTop: 4, textAlign: 'center' },
 });
